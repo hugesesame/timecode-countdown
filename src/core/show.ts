@@ -104,6 +104,11 @@ export function createShow(pageId: string): Show {
   };
 }
 
+/** Cue が 1 つもないショーか（失っても困らない状態か） */
+export function isEmptyShow(show: Show): boolean {
+  return show.pages.every((page) => page.cues.length === 0);
+}
+
 export function nextCueNumber(cues: readonly Cue[]): string {
   let max = 0;
   for (const c of cues) {
@@ -121,8 +126,38 @@ export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
   return result;
 }
 
-export function serializeShow(show: Show): string {
-  return JSON.stringify(show, null, 2);
+/**
+ * ショーファイルに一緒に書き出す入出力の設定。
+ * ポートの id はブラウザや開き方ごとに変わるので、名前で持つ。
+ */
+export interface ShowIo {
+  source: 'int' | 'mtc';
+  midiIn: string | null;
+  noteOut: string | null;
+  mtcOut: string | null;
+}
+
+export function serializeShow(show: Show, io?: ShowIo): string {
+  return JSON.stringify(io ? { ...show, io } : show, null, 2);
+}
+
+/** ショーファイルに入出力の設定が入っていれば取り出す。なければ null。 */
+export function parseShowIo(json: string): ShowIo | null {
+  let data: unknown;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  if (!isObject(data) || !isObject(data.io)) return null;
+  const io = data.io;
+  const name = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+  return {
+    source: io.source === 'mtc' ? 'mtc' : 'int',
+    midiIn: name(io.midiIn),
+    noteOut: name(io.noteOut),
+    mtcOut: name(io.mtcOut),
+  };
 }
 
 type Json = Record<string, unknown>;

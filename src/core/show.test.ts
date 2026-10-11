@@ -1,5 +1,16 @@
 import { describe, expect, test } from 'vitest';
-import { createShow, moveItem, nextCueNumber, parseShow, serializeShow, type Cue } from './show';
+import {
+  createPage,
+  createShow,
+  isEmptyShow,
+  moveItem,
+  nextCueNumber,
+  parseShow,
+  parseShowIo,
+  serializeShow,
+  type Cue,
+  type ShowIo,
+} from './show';
 
 const cue = (number: string): Cue => ({
   id: `id-${number}`,
@@ -150,5 +161,58 @@ describe('serializeShow / parseShow', () => {
     const show = createShow('p1');
     show.pages[0]?.cues.push({ ...cue('1'), channel: 16, note: 0, velocity: 1 });
     expect(parseShow(serializeShow(show)).pages[0]?.cues[0]).toMatchObject({ channel: 16, note: 0, velocity: 1 });
+  });
+});
+
+describe('ショーファイルの入出力設定', () => {
+  const io: ShowIo = { source: 'mtc', midiIn: 'IAC Driver Bus 1', noteOut: 'Desk', mtcOut: null };
+
+  test('入出力設定を付けて書き出し、読み戻せる', () => {
+    expect(parseShowIo(serializeShow(createShow('p1'), io))).toEqual(io);
+  });
+
+  test('入出力設定を付けても、ショーの中身は同じように読める', () => {
+    const show = createShow('p1');
+    expect(parseShow(serializeShow(show, io))).toEqual(show);
+  });
+
+  test('入出力設定のないファイルでは null', () => {
+    expect(parseShowIo(serializeShow(createShow('p1')))).toBeNull();
+  });
+
+  test('JSON として読めない時は null', () => {
+    expect(parseShowIo('not json')).toBeNull();
+  });
+
+  test('知らない入力元は Gen として扱い、文字列でないポート名は未選択にする', () => {
+    const data = JSON.parse(serializeShow(createShow('p1')));
+    data.io = { source: 'ltc', midiIn: 5, noteOut: 'Desk' };
+    expect(parseShowIo(JSON.stringify(data))).toEqual({ source: 'int', midiIn: null, noteOut: 'Desk', mtcOut: null });
+  });
+});
+
+describe('isEmptyShow', () => {
+  test('作ったばかりのショーは空', () => {
+    expect(isEmptyShow(createShow('p1'))).toBe(true);
+  });
+
+  test('Cue が 1 つでもあれば空ではない', () => {
+    const show = createShow('p1');
+    show.pages[0]?.cues.push(cue('1'));
+    expect(isEmptyShow(show)).toBe(false);
+  });
+
+  test('2 ページ目にだけ Cue がある場合も空ではない', () => {
+    const show = createShow('p1');
+    const page = createPage('p2', 'Page 2');
+    page.cues.push(cue('1'));
+    show.pages.push(page);
+    expect(isEmptyShow(show)).toBe(false);
+  });
+
+  test('Cue のないページが増えただけなら空', () => {
+    const show = createShow('p1');
+    show.pages.push(createPage('p2', 'Page 2'));
+    expect(isEmptyShow(show)).toBe(true);
   });
 });

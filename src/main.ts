@@ -53,6 +53,8 @@ function moveSelectedCue(delta: number): void {
 
 document.addEventListener('keydown', (e) => {
   if ((e.target as HTMLElement).closest('input, select, textarea')) return;
+  // ダイアログが開いている間は、Go などのショートカットを効かせない
+  if (document.querySelector('dialog[open]')) return;
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
     e.preventDefault();
     undo();

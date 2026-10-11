@@ -1,7 +1,9 @@
 import { feedMtc, onFire, setIo, state } from '../app';
+import { GapMeter } from '../core/gapmeter';
 import { noteOff, noteOn, resolveMidi } from '../core/midi';
 import { MtcDecoder } from '../core/mtc';
 import { MtcOutScheduler } from '../core/mtcout';
+import type { ShowIo } from '../core/show';
 
 /** unsupported: ブラウザが非対応 / idle: 未接続 / ready: 使用可 / denied: 許可されなかった */
 export type MidiStatus = 'unsupported' | 'idle' | 'ready' | 'denied';
@@ -15,6 +17,11 @@ let access: MIDIAccess | null = null;
 let status: MidiStatus = typeof navigator.requestMIDIAccess === 'function' ? 'idle' : 'unsupported';
 let boundInput: MIDIInput | null = null;
 const decoder = new MtcDecoder();
+/** MTC の受信が途切れた回数（クォーターフレームは通常 10ms 以内の間隔で届く） */
+const rxGaps = new GapMeter(100);
+/** MTC の送信処理が遅れた回数（通常は 20ms ごとに呼ばれる） */
+const txGaps = new GapMeter(60);
+let txRestartsBefore = 0;
 const listeners: (() => void)[] = [];
 
 const notify = (): void => listeners.forEach((fn) => fn());
@@ -37,7 +44,11 @@ function bindInput(): void {
   boundInput = next;
   if (!next) return;
   next.onmidimessage = (e) => {
-    const event = e.data ? decoder.feed(e.data) : null;
+    if (!e.data) return;
+    // 頭出し（フルフレーム）の後は、止まっていても途切れとは数えない
+    if (e.data[0] === 0xf1) rxGaps.mark(e.timeStamp);
+    else if (e.data[0] === 0xf0) rxGaps.pause();
+    const event = decoder.feed(e.data);
     if (event) feedMtc(event, e.timeStamp);
   };
 }
@@ -88,11 +99,18 @@ let mtcOut: MtcOutScheduler | null = null;
 function mtcOutTick(): void {
   const output = access?.outputs.get(state.io.mtcOutId ?? '');
   if (!output || state.io.source !== 'int') {
+    txRestartsBefore += mtcOut?.restarts ?? 0;
     mtcOut = null;
+    txGaps.pause();
     return;
   }
-  if (!mtcOut || mtcOut.rate !== state.show.frameRate) mtcOut = new MtcOutScheduler(state.show.frameRate);
+  if (!mtcOut || mtcOut.rate !== state.show.frameRate) {
+    txRestartsBefore += mtcOut?.restarts ?? 0;
+    mtcOut = new MtcOutScheduler(state.show.frameRate);
+  }
   const now = performance.now();
+  if (state.gen.running) txGaps.mark(now);
+  else txGaps.pause();
   for (const message of mtcOut.tick(now, state.gen.position(now), state.gen.running)) {
     try {
       output.send(message.data, message.at);
@@ -138,4 +156,68 @@ export function initMidi(): void {
     .catch(() => {
       // 許可の状態を調べられないブラウザでは、Enable ボタンを待つ
     });
+}
+
+// ---------- MTC の途切れの記録 ----------
+
+export interface MtcDiagnostics {
+  /** 受信: 途切れた回数、最長の間隔、クォーターフレームの順番が飛んだ回数 */
+  rx: { gaps: number; longestMs: number; resyncs: number };
+  /** 送信: 処理が遅れた回数、最長の間隔、送りそびれて送り直した回数 */
+  tx: { late: number; longestMs: number; restarts: number };
+}
+
+let rxResyncsBefore = 0;
+
+export function mtcDiagnostics(): MtcDiagnostics {
+  return {
+    rx: { gaps: rxGaps.count, longestMs: rxGaps.longestMs, resyncs: decoder.resyncs - rxResyncsBefore },
+    tx: { late: txGaps.count, longestMs: txGaps.longestMs, restarts: txRestartsBefore + (mtcOut?.restarts ?? 0) },
+  };
+}
+
+export function resetMtcDiagnostics(): void {
+  rxGaps.reset();
+  txGaps.reset();
+  rxResyncsBefore = decoder.resyncs;
+  txRestartsBefore = -(mtcOut?.restarts ?? 0);
+}
+
+// ---------- ショーファイルに入れる入出力の設定 ----------
+
+const nameOf = (ports: PortInfo[], id: string | null): string | null =>
+  ports.find((p) => p.id === id)?.name ?? null;
+
+/** 今の入力元と MIDI ポートの選択を、ポートの名前で表す */
+export function currentShowIo(): ShowIo {
+  return {
+    source: state.io.source,
+    midiIn: nameOf(midiInputs(), state.io.midiInId),
+    noteOut: nameOf(midiOutputs(), state.io.midiOutId),
+    mtcOut: nameOf(midiOutputs(), state.io.mtcOutId),
+  };
+}
+
+/**
+ * ショーファイルの入出力の設定を反映する。
+ * 同じ名前のポートが見つからなかった項目は今の選択のままにして、その名前を返す。
+ */
+export async function applyShowIo(io: ShowIo): Promise<string[]> {
+  if ((io.midiIn || io.noteOut || io.mtcOut) && status !== 'ready') await enableMidi();
+  const missing: string[] = [];
+  const idOf = (ports: PortInfo[], name: string | null, current: string | null): string | null => {
+    if (name === null) return null;
+    const found = ports.find((p) => p.name === name);
+    if (!found) missing.push(name);
+    return found ? found.id : current;
+  };
+  setIo({
+    source: io.source,
+    midiInId: idOf(midiInputs(), io.midiIn, state.io.midiInId),
+    midiOutId: idOf(midiOutputs(), io.noteOut, state.io.midiOutId),
+    mtcOutId: idOf(midiOutputs(), io.mtcOut, state.io.mtcOutId),
+  });
+  bindInput();
+  notify();
+  return [...new Set(missing)];
 }

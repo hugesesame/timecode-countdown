@@ -22,6 +22,8 @@ export class MtcDecoder {
   private lastPiece = -1;
   /** 直近に確定した位置。未確定なら null */
   private current: { frames: number; rate: FrameRate } | null = null;
+  /** 受信中にクォーターフレームの順番が飛んだ回数（メッセージの抜けの目安） */
+  resyncs = 0;
 
   feed(data: ArrayLike<number>): MtcEvent | null {
     const status = data[0];
@@ -39,7 +41,10 @@ export class MtcDecoder {
   private quarterFrame(value: number): MtcEvent | null {
     const piece = (value >> 4) & 0x7;
     const inOrder = piece === (this.lastPiece + 1) % 8;
-    if (!inOrder) this.reset();
+    if (!inOrder) {
+      if (this.lastPiece !== -1) this.resyncs += 1;
+      this.reset();
+    }
     this.lastPiece = piece;
 
     if (piece === 0) this.collected = 1;

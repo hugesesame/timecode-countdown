@@ -127,6 +127,7 @@
               <input id="midi-note" type="number" min="0" max="127" title="Note" />
               <input id="midi-vel" type="number" min="1" max="127" title="Velocity" />
             </div>
+            <div id="midi-diag" class="side__diag" title="MTC health since the last reset. Click to reset" hidden></div>
             <div id="midi-message" class="side__message" hidden></div>
           </div>
 
@@ -160,6 +161,18 @@
           </div>
         </aside>
       </main>
+
+      <dialog id="save-dialog" class="dialog">
+        <form method="dialog">
+          <h2 class="dialog__title">Save changes to this show?</h2>
+          <p id="save-dialog-text" class="dialog__text"></p>
+          <div class="dialog__buttons">
+            <button class="btn" value="cancel">Cancel</button>
+            <button class="btn" value="discard">Don't Save</button>
+            <button class="btn btn--primary" value="save">Save…</button>
+          </div>
+        </form>
+      </dialog>
 
       <div id="toast" class="toast" hidden></div>
     </div>

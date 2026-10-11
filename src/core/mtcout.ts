@@ -44,6 +44,8 @@ export class MtcOutScheduler {
   private heldFrame: number | null = null;
   /** 前回の再生中の呼び出し。位置が飛んだかどうかの判定に使う */
   private previous: { nowMs: number; pos: number } | null = null;
+  /** 呼び出しが遅れて、送りそびれた分を飛ばして送り直した回数 */
+  restarts = 0;
 
   constructor(
     readonly rate: FrameRate,
@@ -81,6 +83,7 @@ export class MtcOutScheduler {
     this.previous = { nowMs, pos };
     if (jumped) push(fullFrame(Math.floor(pos), this.rate), nowMs);
     // 呼び出しが遅れて送りそびれた分は飛ばし、次の区切りから送り直す
+    if (this.nextQuarter !== null && !jumped && this.nextQuarter < quarter) this.restarts += 1;
     if (this.nextQuarter === null || jumped || this.nextQuarter < quarter) {
       this.nextQuarter = Math.ceil(quarter / 8) * 8;
     }

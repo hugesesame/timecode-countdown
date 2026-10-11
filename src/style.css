@@ -1082,6 +1082,18 @@ body:not(.is-show) .page__offset {
   margin-left: 0;
 }
 
+.side__diag {
+  margin-top: 6px;
+  color: var(--dim);
+  font: 11px/1.6 var(--mono);
+  white-space: pre;
+  cursor: pointer;
+}
+
+.side__diag.is-alert {
+  color: var(--warn);
+}
+
 .side__message {
   margin-top: 6px;
   color: var(--warn);
@@ -1105,6 +1117,54 @@ body:not(.is-show) .page__offset {
 
 .dot--final {
   background: var(--final);
+}
+
+/* ---------- ダイアログ ---------- */
+
+.dialog {
+  width: 420px;
+  padding: 22px 22px 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  color: var(--text);
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.dialog__title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.dialog__text {
+  margin: 0 0 20px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.dialog__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog__buttons .btn:first-child {
+  margin-right: auto;
+}
+
+.btn--primary {
+  background: color-mix(in srgb, var(--sel) 30%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--sel) 70%, var(--line));
+}
+
+.btn--primary:hover {
+  background: color-mix(in srgb, var(--sel) 42%, var(--bg-3));
+  border-color: var(--sel);
 }
 
 /* ---------- トースト ---------- */

@@ -108,3 +108,35 @@ describe('MtcDecoder: その他', () => {
     expect(d.feed(quarterFrames(0, 0, 1, 2, '30')[0] as number[])).not.toBeNull();
   });
 });
+
+describe('MtcDecoder: 同期が外れた回数', () => {
+  test('順番どおりに受けている間は 0', () => {
+    const d = new MtcDecoder();
+    feedAll(d, quarterFrames(0, 0, 1, 0, '30'));
+    feedAll(d, quarterFrames(0, 0, 1, 2, '30'));
+    expect(d.resyncs).toBe(0);
+  });
+
+  test('途中から受け始めた分は数えない', () => {
+    const d = new MtcDecoder();
+    feedAll(d, quarterFrames(0, 0, 1, 0, '30').slice(3));
+    expect(d.resyncs).toBe(0);
+  });
+
+  test('順番が飛ぶたびに 1 増える', () => {
+    const d = new MtcDecoder();
+    feedAll(d, quarterFrames(0, 0, 1, 0, '30'));
+    const next = quarterFrames(0, 0, 1, 2, '30');
+    d.feed(next[0] as number[]);
+    d.feed(next[2] as number[]);
+    expect(d.resyncs).toBe(1);
+  });
+
+  test('フルフレームの後のやり直しは数えない', () => {
+    const d = new MtcDecoder();
+    feedAll(d, quarterFrames(0, 0, 1, 0, '30').slice(0, 4));
+    d.feed([0xf0, 0x7f, 0x7f, 0x01, 0x01, (3 << 5) | 1, 0, 0, 0, 0xf7]);
+    feedAll(d, quarterFrames(1, 0, 0, 0, '30'));
+    expect(d.resyncs).toBe(0);
+  });
+});

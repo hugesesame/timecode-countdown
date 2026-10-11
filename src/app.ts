@@ -7,6 +7,7 @@ import {
   createCue,
   createPage,
   createShow,
+  isEmptyShow,
   moveItem,
   nextCueNumber,
   parseShow,
@@ -16,11 +17,14 @@ import {
   type Page,
   type Settings,
   type Show,
+  type ShowIo,
 } from './core/show';
 import { convertFrameRate, parseTimecode, secondsToFrames, type FrameRate } from './core/timecode';
 
 const STORAGE_KEY = 'tc-cd:show';
 const IO_KEY = 'tc-cd:io';
+/** 今のショーがファイルに書き出し済みなら '1' が入る */
+const SAVED_KEY = 'tc-cd:saved';
 const UNDO_LIMIT = 50;
 /** これより大きく先に進んだら「飛んだ」と見なす秒数 */
 const JUMP_SEC = 2;
@@ -203,8 +207,29 @@ export const canUndo = (): boolean => undoStack.length > 0;
 function persist(): void {
   try {
     localStorage.setItem(STORAGE_KEY, serializeShow(state.show));
+    // 内容が変わったので、ファイルには未保存の状態になる
+    localStorage.removeItem(SAVED_KEY);
   } catch {
     // 保存できない環境でも動作は続ける
+  }
+}
+
+/** 今のショーをファイルに書き出した、またはファイルから読み込んだ直後に呼ぶ */
+export function markSaved(): void {
+  try {
+    localStorage.setItem(SAVED_KEY, '1');
+  } catch {
+    // 保存できない環境でも動作は続ける
+  }
+}
+
+/** 今のショーを別のショーに置き換える前に、保存を促すべきか */
+export function hasUnsavedChanges(): boolean {
+  if (isEmptyShow(state.show)) return false;
+  try {
+    return localStorage.getItem(SAVED_KEY) !== '1';
+  } catch {
+    return true;
   }
 }
 
@@ -265,8 +290,9 @@ export function importShow(json: string): void {
   replaceShow(parseShow(json));
 }
 
-export function exportShow(): string {
-  return serializeShow(state.show);
+/** 書き出すファイルには、入力元と MIDI ポートの選択も一緒に入れる */
+export function exportShow(io: ShowIo): string {
+  return serializeShow(state.show, io);
 }
 
 export function undo(): void {

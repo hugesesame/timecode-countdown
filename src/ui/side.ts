@@ -2,8 +2,10 @@ import {
   addPage,
   deletePage,
   exportShow,
+  hasUnsavedChanges,
   importShow,
   isShowMode,
+  markSaved,
   newShow,
   nextOf,
   onChange,
@@ -17,14 +19,18 @@ import {
   updateSettings,
 } from '../app';
 import { cueThresholds, formatCountdown, stageFor } from '../core/countdown';
-import { MIDI_RANGE, type MidiTarget } from '../core/show';
+import { MIDI_RANGE, parseShowIo, type MidiTarget } from '../core/show';
 import { formatOffset, framesToSeconds, parseOffset } from '../core/timecode';
 import {
+  applyShowIo,
+  currentShowIo,
   enableMidi,
   midiInputs,
   midiOutputs,
   midiStatus,
+  mtcDiagnostics,
   onMidiChange,
+  resetMtcDiagnostics,
   selectInput,
   selectMtcOutput,
   selectOutput,
@@ -217,19 +223,37 @@ function initSettings(): void {
 function initFile(): void {
   const fileInput = $<HTMLInputElement>('file-input');
 
-  $('file-new').addEventListener('click', () => {
+  $('file-new').addEventListener('click', async () => {
+    const choice = await askToSave('Creating a new show will replace it.');
+    if (choice === 'cancel') return;
+    if (choice === 'save' && !(await saveShow())) return;
     newShow();
     toast('Created an empty show. Use Undo to go back.');
   });
 
-  $('file-import').addEventListener('click', () => fileInput.click());
+  $('file-import').addEventListener('click', async () => {
+    const choice = await askToSave('Loading a file will replace it.');
+    if (choice === 'cancel') return;
+    if (choice === 'save') {
+      // 保存ダイアログを出した後は、ブラウザがファイル選択を開かせてくれないことがある
+      if (await saveShow()) toast('Saved. Press Import again to choose a file.');
+      return;
+    }
+    fileInput.click();
+  });
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     fileInput.value = '';
     if (!file) return;
     try {
-      importShow(await file.text());
-      toast(`Loaded "${file.name}".`);
+      const text = await file.text();
+      importShow(text);
+      markSaved();
+      // 入力元と MIDI ポートの選択も、ファイルに入っていれば戻す
+      const io = parseShowIo(text);
+      const missing = io ? await applyShowIo(io) : [];
+      if (missing.length > 0) toast(`Loaded "${file.name}". MIDI port not found: ${missing.join(', ')}`, true);
+      else toast(`Loaded "${file.name}".`);
     } catch (err) {
       toast(`Could not load the file: ${err instanceof Error ? err.message : String(err)}`, true);
     }
@@ -253,12 +277,48 @@ type SaveFilePicker = (options: {
  * ショーを JSON ファイルに書き出す。保存先を選べるブラウザ（Chrome / Edge）では
  * 保存ダイアログを出し、選べないブラウザではダウンロードフォルダに保存する。
  */
-async function saveShow(): Promise<void> {
+type SaveChoice = 'save' | 'discard' | 'cancel';
+
+/**
+ * 今のショーを置き換える前に、ファイルへの保存を促す。
+ * 未保存の変更がなければ何も聞かずに 'discard' を返す。
+ */
+function askToSave(consequence: string): Promise<SaveChoice> {
+  if (!hasUnsavedChanges()) return Promise.resolve('discard');
+  const dialog = $<HTMLDialogElement>('save-dialog');
+  $('save-dialog-text').textContent = `This show has changes that are not saved to a file. ${consequence}`;
+  dialog.showModal();
+  return new Promise((resolve) => {
+    const buttons = [...dialog.querySelectorAll<HTMLButtonElement>('button')];
+    let settled = false;
+    const finish = (choice: SaveChoice): void => {
+      if (settled) return;
+      settled = true;
+      for (const button of buttons) button.removeEventListener('click', onClick);
+      dialog.removeEventListener('close', onClose);
+      if (dialog.open) dialog.close();
+      resolve(choice);
+    };
+    // close イベントは描画のタイミングまで届かないことがあるので、ボタンのクリックで直接決める
+    const onClick = (e: Event): void => {
+      e.preventDefault();
+      const value = (e.currentTarget as HTMLButtonElement).value;
+      finish(value === 'save' || value === 'discard' ? value : 'cancel');
+    };
+    // Esc キーなど、ボタン以外で閉じられた時はキャンセル
+    const onClose = (): void => finish('cancel');
+    for (const button of buttons) button.addEventListener('click', onClick);
+    dialog.addEventListener('close', onClose);
+  });
+}
+
+/** 保存できたら true。保存ダイアログを閉じた時や失敗した時は false。 */
+async function saveShow(): Promise<boolean> {
   const d = new Date();
   const p = (n: number): string => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
   const fileName = `tc-cd-show-${stamp}.json`;
-  const json = exportShow();
+  const json = exportShow(currentShowIo());
 
   const picker = (window as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
   if (picker) {
@@ -272,13 +332,16 @@ async function saveShow(): Promise<void> {
       const writable = await handle.createWritable();
       await writable.write(json);
       await writable.close();
+      markSaved();
       toast(`Saved "${handle.name}".`);
+      return true;
     } catch (err) {
       // ダイアログを閉じただけなら何もしない
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      toast(`Could not save the file: ${err instanceof Error ? err.message : String(err)}`, true);
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        toast(`Could not save the file: ${err instanceof Error ? err.message : String(err)}`, true);
+      }
+      return false;
     }
-    return;
   }
 
   const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
@@ -287,6 +350,8 @@ async function saveShow(): Promise<void> {
   link.download = fileName;
   link.click();
   URL.revokeObjectURL(url);
+  markSaved();
+  return true;
 }
 
 const MIDI_INPUTS: readonly [string, keyof MidiTarget][] = [
@@ -343,7 +408,29 @@ function renderMidi(): void {
   }
 }
 
+/** MTC の送受信が途切れた記録を表示する。長時間動かした時に、どちら側で起きたかを見分けるため。 */
+function renderDiagnostics(): void {
+  const node = $('midi-diag');
+  const { rx, tx } = mtcDiagnostics();
+  const lines: string[] = [];
+  if (state.io.midiInId) {
+    lines.push(`MTC In : ${rx.gaps} gaps (max ${Math.round(rx.longestMs)} ms), ${rx.resyncs} resyncs`);
+  }
+  if (state.io.mtcOutId) {
+    lines.push(`MTC Out: ${tx.late} late (max ${Math.round(tx.longestMs)} ms), ${tx.restarts} restarts`);
+  }
+  const text = lines.join('\n');
+  if (node.textContent !== text) node.textContent = text;
+  node.hidden = lines.length === 0 || midiStatus() !== 'ready';
+  node.classList.toggle('is-alert', rx.gaps + rx.resyncs + tx.late + tx.restarts > 0);
+}
+
 function initMidiPanel(): void {
+  $('midi-diag').addEventListener('click', () => {
+    resetMtcDiagnostics();
+    renderDiagnostics();
+  });
+  setInterval(renderDiagnostics, 1000);
   $('midi-enable').addEventListener('click', () => void enableMidi());
   const input = $<HTMLSelectElement>('midi-in');
   const output = $<HTMLSelectElement>('midi-out');

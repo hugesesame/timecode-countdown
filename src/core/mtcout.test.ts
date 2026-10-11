@@ -122,6 +122,23 @@ describe('MtcOutScheduler: 呼び出しが遅れた時', () => {
     expect((quarters[0] as TimedMessage).at).toBeCloseTo(300 + 1000 / 30, 6);
   });
 
+  test('送りそびれて送り直した回数を数える', () => {
+    const s = new MtcOutScheduler('30', 100);
+    s.tick(0, 0, true);
+    expect(s.restarts).toBe(0);
+    s.tick(300, 9, true);
+    expect(s.restarts).toBe(1);
+  });
+
+  test('再生開始や頭出しは、送り直しとして数えない', () => {
+    const s = new MtcOutScheduler('30', 100);
+    s.tick(0, 0, true);
+    s.tick(20, 9000.6, true);
+    s.tick(40, 9001.2, false);
+    s.tick(500, 9001.2, true);
+    expect(s.restarts).toBe(0);
+  });
+
   test('少しの遅れなら、抜けなく続きを送る', () => {
     const s = new MtcOutScheduler('30', 100);
     const first = s.tick(0, 0, true).filter(isQuarter);
