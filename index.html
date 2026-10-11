@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>TC-CD</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="hdr">
+        <button id="go" class="go" title="Fire the selected cue (Space)">
+          <span class="go__label">GO</span>
+          <span id="go-target" class="go__target">—</span>
+        </button>
+
+        <section class="tc">
+          <div class="tc__top">
+            <select id="source" class="select select--source" title="Timecode source">
+              <option value="int">Gen</option>
+              <option value="mtc">MTC</option>
+            </select>
+            <span id="tc-status" class="tc__status"></span>
+            <select id="rate" class="select" title="Frame rate"></select>
+          </div>
+          <div class="tc__display">
+            <div id="tc-digits" class="tc__digits" title="Click to locate">00:00:00:00</div>
+            <input id="tc-locate" class="tc__input" spellcheck="false" hidden />
+          </div>
+          <div class="tc__ctl">
+            <button id="tc-rewind" class="btn btn--icon" title="Return to start">
+              <svg viewBox="0 0 16 16"><path d="M3 3h2v10H3zM13 3v10L6 8z" /></svg>
+            </button>
+            <button id="tc-play" class="btn btn--icon" title="Play / Stop">
+              <svg class="i-play" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" /></svg>
+              <svg class="i-stop" viewBox="0 0 16 16"><path d="M3.5 3.5h9v9h-9z" /></svg>
+            </button>
+            <button id="tc-preroll" class="btn" title="Play from just before the selected cue (or the next cue if none is selected)">Pre-roll</button>
+            <button id="tc-ignore" class="btn btn--toggle" title="Stop timecode from firing cues on all pages">TC ON</button>
+          </div>
+        </section>
+
+        <section id="cd" class="cd" data-stage="none">
+          <div class="cd__main">
+            <div class="cd__cue">
+              <div class="cd__row">
+                <span class="lbl">NEXT</span>
+                <span id="cd-number" class="cd__number">—</span>
+              </div>
+              <div id="cd-name" class="cd__name"></div>
+              <div id="cd-info" class="cd__info"></div>
+              <div class="cd__last"><span class="lbl">LAST</span> <span id="cd-last">—</span></div>
+            </div>
+            <div id="cd-time" class="cd__time" title="Click to switch between whole seconds and tenths">--</div>
+          </div>
+          <div id="lane" class="lane">
+            <div class="lane__zones"></div>
+            <div id="lane-ticks"></div>
+            <div id="lane-track" class="lane__track"></div>
+            <div class="lane__go"></div>
+          </div>
+        </section>
+      </header>
+
+      <main class="body">
+        <section class="cues">
+          <div class="toolbar">
+            <div class="seg" title="Program: for editing / Show: for running the show (locks editing, enlarges the display)">
+              <button id="mode-program" class="seg__btn">Program</button>
+              <button id="mode-show" class="seg__btn">Show</button>
+            </div>
+            <button id="cue-add" class="btn prog-only" title="Add a cue below the selected cue">+ Add Cue</button>
+            <button id="cue-delete" class="btn prog-only" title="Delete the selected cue">Delete</button>
+            <button id="undo" class="btn prog-only" title="Undo (⌘Z / Ctrl+Z)">Undo</button>
+            <button id="capture" class="btn prog-only" title="Capture the current timecode into the selected cue's Trigger Time (C). Creates a new cue if none is selected">Capture</button>
+            <button id="auto-scroll" class="btn btn--toggle" title="Scroll automatically to keep the next cue in view">Auto Scroll</button>
+            <span class="toolbar__hint prog-only">Space: Go · ↑↓: Select · Alt+↑↓: Move · Enter: Edit · C: Capture · F: Fullscreen</span>
+            <span class="toolbar__hint show-only">Space: Go · ↑↓: Select · F: Fullscreen</span>
+            <button id="fullscreen" class="btn btn--icon" title="Fullscreen (F)">
+              <svg class="i-enter" viewBox="0 0 16 16"><path d="M2 2h5v1.6H3.6V7H2zM14 2v5h-1.6V3.6H9V2zM2 14V9h1.6v3.4H7V14zM14 14H9v-1.6h3.4V9H14z" /></svg>
+              <svg class="i-exit" viewBox="0 0 16 16"><path d="M7 7H2V5.4h3.4V2H7zM9 7V2h1.6v3.4H14V7zM7 9v5H5.4v-3.4H2V9zM9 9h5v1.6h-3.4V14H9z" /></svg>
+            </button>
+          </div>
+          <div class="cues__head row">
+            <span></span>
+            <span>Cue</span>
+            <span>Trigger Time</span>
+            <span>Cue Name</span>
+            <span>Info</span>
+            <span class="prog-only" title="Seconds before GO at which the countdown starts changing color, for this cue only. Leave empty to use Standby under COUNTDOWN">Stby</span>
+            <span class="prog-only" title="MIDI Channel (1 - 16)">Ch</span>
+            <span class="prog-only" title="MIDI Note (0 - 127)">Note</span>
+            <span class="prog-only" title="MIDI Velocity (1 - 127)">Vel</span>
+            <span class="row__center">On / Off</span>
+          </div>
+          <div id="cue-list" class="cues__list"></div>
+        </section>
+
+        <aside class="side">
+          <div class="side__section side__section--grow">
+            <div class="side__title">
+              <span class="lbl">PAGES</span>
+              <button id="page-add" class="btn btn--small prog-only" title="Add a page">+</button>
+            </div>
+            <div id="page-list" class="pages"></div>
+          </div>
+
+          <div class="side__section prog-only">
+            <div class="side__title">
+              <span class="lbl">MIDI</span>
+              <button id="midi-enable" class="btn btn--tiny" title="Ask the browser for permission to use MIDI">Enable</button>
+            </div>
+            <label class="field" title="Input port that receives MTC">
+              MTC In
+              <select id="midi-in" class="select"></select>
+            </label>
+            <label class="field" title="Output port that sends a MIDI Note when a cue fires">
+              Note Out
+              <select id="midi-out" class="select"></select>
+            </label>
+            <label class="field" title="Output port that sends the internal generator's timecode as MTC. Only sends while the source is Gen">
+              MTC Out
+              <select id="mtc-out" class="select"></select>
+            </label>
+            <div class="field field--trio" title="Defaults for cues on this page. Used when a cue's Ch / Note / Vel is empty">
+              <span>Page</span>
+              <input id="midi-ch" type="number" min="1" max="16" title="Channel" />
+              <input id="midi-note" type="number" min="0" max="127" title="Note" />
+              <input id="midi-vel" type="number" min="1" max="127" title="Velocity" />
+            </div>
+            <div id="midi-message" class="side__message" hidden></div>
+          </div>
+
+          <div class="side__section prog-only">
+            <div class="side__title"><span class="lbl">COUNTDOWN</span></div>
+            <div class="field field--stages">
+              <label title="Standby: seconds before GO at which the lane starts moving and the color turns yellow">
+                <span class="dot dot--standby"></span>
+                <input id="set-standby" type="number" min="1" step="1" />
+              </label>
+              <label title="Warn: seconds before GO at which the color turns orange">
+                <span class="dot dot--warn"></span>
+                <input id="set-warn" type="number" min="0" step="1" />
+              </label>
+              <label title="Final: seconds before GO at which the color turns red">
+                <span class="dot dot--final"></span>
+                <input id="set-final" type="number" min="0" step="1" />
+              </label>
+              <span class="unit">s</span>
+            </div>
+          </div>
+
+          <div class="side__section prog-only">
+            <div class="side__title"><span class="lbl">SHOW FILE</span></div>
+            <div class="side__buttons">
+              <button id="file-new" class="btn" title="Create an empty show">New</button>
+              <button id="file-import" class="btn" title="Load a JSON file">Import</button>
+              <button id="file-export" class="btn" title="Save to a JSON file">Export</button>
+            </div>
+            <input id="file-input" type="file" accept=".json,application/json" hidden />
+          </div>
+        </aside>
+      </main>
+
+      <div id="toast" class="toast" hidden></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,381 @@
+import {
+  addPage,
+  deletePage,
+  exportShow,
+  importShow,
+  isShowMode,
+  newShow,
+  nextOf,
+  onChange,
+  onFire,
+  renamePage,
+  setActivePage,
+  setPageOffset,
+  state,
+  togglePageTcIgnore,
+  updatePageMidi,
+  updateSettings,
+} from '../app';
+import { cueThresholds, formatCountdown, stageFor } from '../core/countdown';
+import { MIDI_RANGE, type MidiTarget } from '../core/show';
+import { formatOffset, framesToSeconds, parseOffset } from '../core/timecode';
+import {
+  enableMidi,
+  midiInputs,
+  midiOutputs,
+  midiStatus,
+  onMidiChange,
+  selectInput,
+  selectMtcOutput,
+  selectOutput,
+  type PortInfo,
+} from '../io/midi';
+import { $, el, replay, setAttr, setText, toast } from './dom';
+
+interface PageEls {
+  item: HTMLElement;
+  cd: HTMLElement;
+}
+
+const pageEls = new Map<string, PageEls>();
+
+export function initSide(): void {
+  $('page-add').addEventListener('click', addPage);
+  initSettings();
+  initMidiPanel();
+  initFile();
+  onChange(render);
+  onMidiChange(renderMidi);
+  onFire((e) => {
+    const els = pageEls.get(e.pageId);
+    if (els && e.pageId !== state.activePageId) replay(els.item, 'is-go');
+  });
+  render();
+}
+
+function render(): void {
+  pageEls.clear();
+  const canDelete = state.show.pages.length > 1;
+  const nodes = state.show.pages.map((page) => {
+    const item = el('div', 'page');
+    item.classList.toggle('is-active', page.id === state.activePageId);
+    item.classList.toggle('is-ignored', page.tcIgnore);
+
+    const top = el('div', 'page__top');
+    const name = el('span', 'page__name', page.name);
+    name.title = 'Double-click to rename';
+    top.append(name, el('span', 'page__count', String(page.cues.length)));
+    if (canDelete) {
+      const del = el('button', 'page__delete', '×');
+      del.title = 'Delete this page';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deletePage(page.id);
+        toast(`Deleted "${page.name}". Use Undo to restore it.`);
+      });
+      top.append(del);
+    }
+
+    const bottom = el('div', 'page__bottom');
+    const tc = el('button', 'page__tc', page.tcIgnore ? 'TC OFF' : 'TC ON');
+    tc.title = 'Stop timecode from firing cues on this page only';
+    tc.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePageTcIgnore(page.id);
+    });
+
+    const offset = el('span', 'page__offset', formatOffset(page.offsetFrames, state.show.frameRate));
+    offset.classList.toggle('is-zero', page.offsetFrames === 0);
+    offset.title = 'Offset: time added to each cue\'s Trigger Time (e.g. the timecode at the top of the song). Click to edit';
+    offset.addEventListener('click', (e) => {
+      if (isShowMode()) return;
+      e.stopPropagation();
+      startOffsetEdit(page.id, offset);
+    });
+
+    const cd = el('span', 'page__cd', '--');
+    cd.title = 'Time until the next cue on this page';
+    bottom.append(tc, offset, cd);
+
+    item.append(top, bottom);
+    item.addEventListener('click', () => setActivePage(page.id));
+    name.addEventListener('dblclick', () => {
+      if (!isShowMode()) startRename(page.id, page.name, name);
+    });
+    pageEls.set(page.id, { item, cd });
+    return item;
+  });
+  $('page-list').replaceChildren(...nodes);
+
+  const { standbySec, warnSec, finalSec } = state.show.settings;
+  $<HTMLInputElement>('set-standby').value = String(standbySec);
+  $<HTMLInputElement>('set-warn').value = String(warnSec);
+  $<HTMLInputElement>('set-final').value = String(finalSec);
+  renderMidi();
+}
+
+/** 毎フレーム: 各ページの次の Cue までの残り時間。裏のページの Cue に気づけるようにする。 */
+export function updateSide(pos: number): void {
+  const { frameRate, settings } = state.show;
+  for (const page of state.show.pages) {
+    const els = pageEls.get(page.id);
+    if (!els) continue;
+    const next = nextOf(page, pos);
+    if (next) {
+      const remaining = framesToSeconds(next.at - pos, frameRate);
+      setText(els.cd, formatCountdown(remaining, state.io.countdownStyle));
+      setAttr(els.cd, 'data-stage', stageFor(remaining, cueThresholds(next.cue.standbySec, settings)));
+    } else {
+      setText(els.cd, '--');
+      setAttr(els.cd, 'data-stage', 'none');
+    }
+  }
+}
+
+function startOffsetEdit(id: string, holder: HTMLElement): void {
+  if (holder.querySelector('input')) return;
+  const input = el('input');
+  input.spellcheck = false;
+  input.value = holder.textContent ?? '';
+  holder.replaceChildren(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const finish = (commit: boolean): boolean => {
+    if (done) return true;
+    const frames = commit ? parseOffset(input.value, state.show.frameRate) : null;
+    if (commit && frames === null) {
+      input.classList.add('is-invalid');
+      return false;
+    }
+    done = true;
+    if (frames !== null) setPageOffset(id, frames);
+    render();
+    return true;
+  };
+  input.addEventListener('click', (e) => e.stopPropagation());
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') finish(true);
+    if (e.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => {
+    if (!finish(true)) finish(false);
+  });
+}
+
+function startRename(id: string, current: string, holder: HTMLElement): void {
+  if (holder.querySelector('input')) return;
+  const input = el('input');
+  input.value = current;
+  holder.replaceChildren(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const finish = (commit: boolean): void => {
+    if (done) return;
+    done = true;
+    if (commit) renamePage(id, input.value);
+    render();
+  };
+  input.addEventListener('click', (e) => e.stopPropagation());
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') finish(true);
+    if (e.key === 'Escape') finish(false);
+  });
+  input.addEventListener('blur', () => finish(true));
+}
+
+/** Standby >= Warn >= Final になるように丸めて保存する */
+function initSettings(): void {
+  const standby = $<HTMLInputElement>('set-standby');
+  const warn = $<HTMLInputElement>('set-warn');
+  const final = $<HTMLInputElement>('set-final');
+  const read = (input: HTMLInputElement, fallback: number): number => {
+    const value = Number(input.value);
+    return input.value.trim() !== '' && Number.isFinite(value) ? value : fallback;
+  };
+  const apply = (): void => {
+    const current = state.show.settings;
+    const standbySec = Math.max(1, read(standby, current.standbySec));
+    const warnSec = Math.max(0, Math.min(standbySec, read(warn, current.warnSec)));
+    const finalSec = Math.max(0, Math.min(warnSec, read(final, current.finalSec)));
+    updateSettings({ standbySec, warnSec, finalSec });
+  };
+  for (const input of [standby, warn, final]) {
+    input.addEventListener('change', apply);
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') input.blur();
+    });
+  }
+}
+
+function initFile(): void {
+  const fileInput = $<HTMLInputElement>('file-input');
+
+  $('file-new').addEventListener('click', () => {
+    newShow();
+    toast('Created an empty show. Use Undo to go back.');
+  });
+
+  $('file-import').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (!file) return;
+    try {
+      importShow(await file.text());
+      toast(`Loaded "${file.name}".`);
+    } catch (err) {
+      toast(`Could not load the file: ${err instanceof Error ? err.message : String(err)}`, true);
+    }
+  });
+
+  $('file-export').addEventListener('click', () => void saveShow());
+}
+
+interface SaveFileHandle {
+  name: string;
+  createWritable(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
+}
+
+type SaveFilePicker = (options: {
+  id?: string;
+  suggestedName?: string;
+  types?: { description: string; accept: Record<string, string[]> }[];
+}) => Promise<SaveFileHandle>;
+
+/**
+ * ショーを JSON ファイルに書き出す。保存先を選べるブラウザ（Chrome / Edge）では
+ * 保存ダイアログを出し、選べないブラウザではダウンロードフォルダに保存する。
+ */
+async function saveShow(): Promise<void> {
+  const d = new Date();
+  const p = (n: number): string => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+  const fileName = `tc-cd-show-${stamp}.json`;
+  const json = exportShow();
+
+  const picker = (window as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
+  if (picker) {
+    try {
+      const handle = await picker({
+        // 同じ id を使うと、前回保存したフォルダから始まる
+        id: 'tc-cd-show',
+        suggestedName: fileName,
+        types: [{ description: 'TC-CD show', accept: { 'application/json': ['.json'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      toast(`Saved "${handle.name}".`);
+    } catch (err) {
+      // ダイアログを閉じただけなら何もしない
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      toast(`Could not save the file: ${err instanceof Error ? err.message : String(err)}`, true);
+    }
+    return;
+  }
+
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  const link = el('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+const MIDI_INPUTS: readonly [string, keyof MidiTarget][] = [
+  ['midi-ch', 'channel'],
+  ['midi-note', 'note'],
+  ['midi-vel', 'velocity'],
+];
+
+const MIDI_MESSAGES: Record<string, string> = {
+  unsupported: 'This browser does not support Web MIDI. Open the app in Chrome or Edge.',
+  denied: 'MIDI access was not allowed. Allow it in the browser\'s site settings.',
+};
+
+function fillPorts(select: HTMLSelectElement, ports: PortInfo[], selectedId: string | null): void {
+  const none = el('option', '', 'None');
+  none.value = '';
+  const options = ports.map((port) => {
+    const option = el('option', '', port.name);
+    option.value = port.id;
+    return option;
+  });
+  // 前に選んだ機器がつながっていない時も、選択は残しておく
+  if (selectedId && !ports.some((port) => port.id === selectedId)) {
+    const missing = el('option', '', '(disconnected)');
+    missing.value = selectedId;
+    options.push(missing);
+  }
+  select.replaceChildren(none, ...options);
+  select.value = selectedId ?? '';
+}
+
+function renderMidi(): void {
+  const status = midiStatus();
+  const ready = status === 'ready';
+  $('midi-enable').hidden = ready || status === 'unsupported';
+
+  const input = $<HTMLSelectElement>('midi-in');
+  const output = $<HTMLSelectElement>('midi-out');
+  fillPorts(input, midiInputs(), state.io.midiInId);
+  const mtcOutput = $<HTMLSelectElement>('mtc-out');
+  fillPorts(output, midiOutputs(), state.io.midiOutId);
+  fillPorts(mtcOutput, midiOutputs(), state.io.mtcOutId);
+  input.disabled = !ready;
+  output.disabled = !ready;
+  mtcOutput.disabled = !ready;
+
+  const message = $('midi-message');
+  message.textContent = MIDI_MESSAGES[status] ?? '';
+  message.hidden = !(status in MIDI_MESSAGES);
+
+  const page = state.show.pages.find((p) => p.id === state.activePageId);
+  for (const [id, key] of MIDI_INPUTS) {
+    if (page) $<HTMLInputElement>(id).value = String(page.midi[key]);
+  }
+}
+
+function initMidiPanel(): void {
+  $('midi-enable').addEventListener('click', () => void enableMidi());
+  const input = $<HTMLSelectElement>('midi-in');
+  const output = $<HTMLSelectElement>('midi-out');
+  input.addEventListener('change', () => {
+    selectInput(input.value || null);
+    input.blur();
+  });
+  output.addEventListener('change', () => {
+    selectOutput(output.value || null);
+    output.blur();
+  });
+  const mtcOutput = $<HTMLSelectElement>('mtc-out');
+  mtcOutput.addEventListener('change', () => {
+    selectMtcOutput(mtcOutput.value || null);
+    mtcOutput.blur();
+  });
+
+  for (const [id, key] of MIDI_INPUTS) {
+    const field = $<HTMLInputElement>(id);
+    field.addEventListener('change', () => {
+      const value = Number(field.value);
+      const [min, max] = MIDI_RANGE[key];
+      // 範囲外の入力は取り消して、今の値に戻す
+      if (field.value.trim() !== '' && Number.isInteger(value) && value >= min && value <= max) {
+        updatePageMidi({ [key]: value });
+      } else {
+        renderMidi();
+      }
+    });
+    field.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') field.blur();
+    });
+  }
+}
