@@ -4,6 +4,7 @@ import { noteOff, noteOn, resolveMidi } from '../core/midi';
 import { MtcDecoder } from '../core/mtc';
 import { MtcOutScheduler } from '../core/mtcout';
 import type { ShowIo } from '../core/show';
+import { applyLtcShowIo, ltcInputName } from './ltc';
 
 /** unsupported: ブラウザが非対応 / idle: 未接続 / ready: 使用可 / denied: 許可されなかった */
 export type MidiStatus = 'unsupported' | 'idle' | 'ready' | 'denied';
@@ -188,13 +189,15 @@ export function resetMtcDiagnostics(): void {
 const nameOf = (ports: PortInfo[], id: string | null): string | null =>
   ports.find((p) => p.id === id)?.name ?? null;
 
-/** 今の入力元と MIDI ポートの選択を、ポートの名前で表す */
+/** 今の入力元と入出力の選択を、ポートや機器の名前で表す */
 export function currentShowIo(): ShowIo {
   return {
     source: state.io.source,
     midiIn: nameOf(midiInputs(), state.io.midiInId),
     noteOut: nameOf(midiOutputs(), state.io.midiOutId),
     mtcOut: nameOf(midiOutputs(), state.io.mtcOutId),
+    ltcIn: ltcInputName(),
+    ltcChannel: state.io.ltcChannel + 1,
   };
 }
 
@@ -219,5 +222,7 @@ export async function applyShowIo(io: ShowIo): Promise<string[]> {
   });
   bindInput();
   notify();
+  const ltcMissing = await applyLtcShowIo(io.ltcIn, io.ltcChannel);
+  if (ltcMissing) missing.push(ltcMissing);
   return [...new Set(missing)];
 }

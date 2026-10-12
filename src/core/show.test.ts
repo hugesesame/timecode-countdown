@@ -165,7 +165,7 @@ describe('serializeShow / parseShow', () => {
 });
 
 describe('ショーファイルの入出力設定', () => {
-  const io: ShowIo = { source: 'mtc', midiIn: 'IAC Driver Bus 1', noteOut: 'Desk', mtcOut: null };
+  const io: ShowIo = { source: 'mtc', midiIn: 'IAC Driver Bus 1', noteOut: 'Desk', mtcOut: null, ltcIn: null, ltcChannel: 1 };
 
   test('入出力設定を付けて書き出し、読み戻せる', () => {
     expect(parseShowIo(serializeShow(createShow('p1'), io))).toEqual(io);
@@ -186,8 +186,28 @@ describe('ショーファイルの入出力設定', () => {
 
   test('知らない入力元は Gen として扱い、文字列でないポート名は未選択にする', () => {
     const data = JSON.parse(serializeShow(createShow('p1')));
-    data.io = { source: 'ltc', midiIn: 5, noteOut: 'Desk' };
-    expect(parseShowIo(JSON.stringify(data))).toEqual({ source: 'int', midiIn: null, noteOut: 'Desk', mtcOut: null });
+    data.io = { source: 'smpte', midiIn: 5, noteOut: 'Desk' };
+    expect(parseShowIo(JSON.stringify(data))).toEqual({
+      source: 'int',
+      midiIn: null,
+      noteOut: 'Desk',
+      mtcOut: null,
+      ltcIn: null,
+      ltcChannel: 1,
+    });
+  });
+
+  test('LTC の入力元、音声入力の名前、チャンネルを読み書きできる', () => {
+    const ltc: ShowIo = { source: 'ltc', midiIn: null, noteOut: null, mtcOut: null, ltcIn: 'Scarlett 2i2', ltcChannel: 2 };
+    expect(parseShowIo(serializeShow(createShow('p1'), ltc))).toEqual(ltc);
+  });
+
+  test('おかしなチャンネル番号は 1 にする', () => {
+    const data = JSON.parse(serializeShow(createShow('p1')));
+    data.io = { source: 'ltc', ltcChannel: 0 };
+    expect(parseShowIo(JSON.stringify(data))?.ltcChannel).toBe(1);
+    data.io.ltcChannel = 'two';
+    expect(parseShowIo(JSON.stringify(data))?.ltcChannel).toBe(1);
   });
 });
 

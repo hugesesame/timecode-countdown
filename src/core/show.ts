@@ -131,10 +131,14 @@ export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
  * ポートの id はブラウザや開き方ごとに変わるので、名前で持つ。
  */
 export interface ShowIo {
-  source: 'int' | 'mtc';
+  source: 'int' | 'mtc' | 'ltc';
   midiIn: string | null;
   noteOut: string | null;
   mtcOut: string | null;
+  /** LTC を受ける音声入力の名前 */
+  ltcIn: string | null;
+  /** LTC が入っているチャンネル（1 から数える） */
+  ltcChannel: number;
 }
 
 export function serializeShow(show: Show, io?: ShowIo): string {
@@ -153,10 +157,12 @@ export function parseShowIo(json: string): ShowIo | null {
   const io = data.io;
   const name = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
   return {
-    source: io.source === 'mtc' ? 'mtc' : 'int',
+    source: io.source === 'mtc' || io.source === 'ltc' ? io.source : 'int',
     midiIn: name(io.midiIn),
     noteOut: name(io.noteOut),
     mtcOut: name(io.mtcOut),
+    ltcIn: name(io.ltcIn),
+    ltcChannel: typeof io.ltcChannel === 'number' && Number.isInteger(io.ltcChannel) && io.ltcChannel >= 1 ? io.ltcChannel : 1,
   };
 }
 

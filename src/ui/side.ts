@@ -33,6 +33,18 @@ import {
   testClick,
 } from '../io/click';
 import {
+  ltcActiveName,
+  ltcChannels,
+  ltcError,
+  ltcInputs,
+  ltcLevel,
+  ltcStatus,
+  onLtcChange,
+  retryLtc,
+  selectLtcChannel,
+  selectLtcInput,
+} from '../io/ltc';
+import {
   applyShowIo,
   currentShowIo,
   enableMidi,
@@ -61,6 +73,7 @@ export function initSide(): void {
   initSettings();
   initMidiPanel();
   initClickPanel();
+  initLtcPanel();
   initFile();
   onChange(render);
   onMidiChange(renderMidi);
@@ -265,7 +278,7 @@ function initFile(): void {
       // 入力元と MIDI ポートの選択も、ファイルに入っていれば戻す
       const io = parseShowIo(text);
       const missing = io ? await applyShowIo(io) : [];
-      if (missing.length > 0) toast(`Loaded "${file.name}". MIDI port not found: ${missing.join(', ')}`, true);
+      if (missing.length > 0) toast(`Loaded "${file.name}". Not found: ${missing.join(', ')}`, true);
       else toast(`Loaded "${file.name}".`);
     } catch (err) {
       toast(`Could not load the file: ${err instanceof Error ? err.message : String(err)}`, true);
@@ -534,4 +547,79 @@ function initClickPanel(): void {
     });
   });
   renderClick();
+}
+
+// ---------- LTC ----------
+
+const LTC_MESSAGES: Record<string, string> = {
+  denied: 'Microphone access was not allowed. Allow it in the browser\'s site settings, then press Retry.',
+  error: 'Could not open the audio input. Check the connection, then press Retry.',
+  suspended: 'The browser paused audio. Click anywhere on the page to start.',
+};
+
+function renderLtc(): void {
+  // 右パネルが長くなりすぎないよう、入力元が LTC の時だけ出す
+  $('ltc-section').classList.toggle('is-unused', state.io.source !== 'ltc');
+  const input = $<HTMLSelectElement>('ltc-in');
+  const selectedId = state.io.ltcInId;
+  // 既定の入力で開いている時は、実際に開いた機器の名前も出す
+  const active = selectedId === null && ltcActiveName() ? ` (${ltcActiveName().replace(/^Default - /, '')})` : '';
+  const fallback = el('option', '', `System default${active}`);
+  fallback.value = '';
+  const options = ltcInputs().map((device) => {
+    const option = el('option', '', device.name);
+    option.value = device.id;
+    return option;
+  });
+  // 前に選んだ機器がつながっていない時も、選択は残しておく
+  if (selectedId && !ltcInputs().some((device) => device.id === selectedId)) {
+    const missing = el('option', '', ltcInputs().length > 0 ? '(disconnected)' : '(saved device)');
+    missing.value = selectedId;
+    options.push(missing);
+  }
+  input.replaceChildren(fallback, ...options);
+  input.value = selectedId ?? '';
+
+  // 開いている入力のチャンネル数まで選べる。開く前でも、保存済みの選択は残す
+  const channel = $<HTMLSelectElement>('ltc-channel');
+  const count = Math.max(ltcChannels(), state.io.ltcChannel + 1);
+  channel.replaceChildren(
+    ...Array.from({ length: count }, (_, i) => {
+      const option = el('option', '', String(i + 1));
+      option.value = String(i);
+      return option;
+    }),
+  );
+  channel.value = String(state.io.ltcChannel);
+
+  const status = ltcStatus();
+  $('ltc-retry').hidden = status !== 'denied' && status !== 'error';
+  const message = $('ltc-message');
+  // 開けなかった時は、ブラウザが返した理由も出す
+  const reason = status === 'error' && ltcError() ? ` (${ltcError()})` : '';
+  message.textContent = (LTC_MESSAGES[status] ?? '') + reason;
+  message.hidden = !(status in LTC_MESSAGES);
+}
+
+function initLtcPanel(): void {
+  const input = $<HTMLSelectElement>('ltc-in');
+  input.addEventListener('change', () => {
+    selectLtcInput(input.value || null);
+    input.blur();
+  });
+  const channel = $<HTMLSelectElement>('ltc-channel');
+  channel.addEventListener('change', () => {
+    selectLtcChannel(Number(channel.value));
+    channel.blur();
+  });
+  $('ltc-retry').addEventListener('click', retryLtc);
+  // レベルは -60 dB から 0 dB までを棒の長さにする
+  const bar = $('ltc-level');
+  setInterval(() => {
+    const db = 20 * Math.log10(Math.max(ltcLevel(), 1e-6));
+    bar.style.width = `${Math.min(100, Math.max(0, ((db + 60) / 60) * 100))}%`;
+  }, 100);
+  onLtcChange(renderLtc);
+  onChange(renderLtc);
+  renderLtc();
 }

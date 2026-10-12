@@ -27,6 +27,7 @@ import {
   parseTimecode,
   type FrameRate,
 } from '../core/timecode';
+import { ltcStatus } from '../io/ltc';
 import { enableMidi } from '../io/midi';
 import { $, el, replay, setAttr, setText } from './dom';
 
@@ -138,21 +139,32 @@ function renderStatic(): void {
 
 const markerEls = new Map<string, HTMLElement>();
 
-/** 入力元の状態: MTC を受信できているか、レートがショーと合っているか */
+/** LTC の音声入力を使えない時の表示 */
+const LTC_ALERTS: Record<string, string> = {
+  denied: '⚠ Mic blocked',
+  error: '⚠ No input',
+  suspended: '⚠ Click page',
+};
+
+/** 入力元の状態: タイムコードを受信できているか、レートがショーと合っているか */
 function updateStatus(now: number): void {
   const status = $('tc-status');
   let text = '';
   let level = '';
-  if (state.io.source === 'mtc') {
-    const { mtcRate } = state;
-    if (mtcRate && mtcRate !== state.show.frameRate) {
-      text = `⚠ MTC is ${FRAME_RATE_LABELS[mtcRate]} fps`;
+  if (state.io.source !== 'int') {
+    const { extRate } = state;
+    const alert = state.io.source === 'ltc' ? LTC_ALERTS[ltcStatus()] : undefined;
+    if (alert) {
+      text = alert;
+      level = 'is-alert';
+    } else if (extRate && extRate !== state.show.frameRate) {
+      text = `⚠ ${state.io.source.toUpperCase()} is ${FRAME_RATE_LABELS[extRate]} fps`;
       level = 'is-alert';
     } else if (clockRunning(now)) {
       text = '● Receiving';
       level = 'is-ok';
     } else {
-      text = mtcRate ? 'Stopped' : 'No signal';
+      text = extRate ? 'Stopped' : 'No signal';
     }
   }
   setText(status, text);

@@ -68,7 +68,7 @@ function loadShow(): Show {
   return sampleShow();
 }
 
-export type Source = 'int' | 'mtc';
+export type Source = 'int' | 'mtc' | 'ltc';
 
 /** このマシンでの入出力の選択。ショーファイルには含めない。 */
 export type Mode = 'program' | 'show';
@@ -89,13 +89,17 @@ export interface IoPrefs {
   clickVolume: number;
   /** クリック音の出力先。null はシステムの既定の出力 */
   clickSinkId: string | null;
+  /** LTC を受ける音声入力。null はシステムの既定の入力 */
+  ltcInId: string | null;
+  /** LTC が入っているチャンネル（0 から数える） */
+  ltcChannel: number;
 }
 
 function loadIo(): IoPrefs {
-  const prefs: IoPrefs = { source: 'int', mode: 'program', countdownStyle: 'whole', midiInId: null, midiOutId: null, mtcOutId: null, clickOn: false, clickVolume: 0.6, clickSinkId: null };
+  const prefs: IoPrefs = { source: 'int', mode: 'program', countdownStyle: 'whole', midiInId: null, midiOutId: null, mtcOutId: null, clickOn: false, clickVolume: 0.6, clickSinkId: null, ltcInId: null, ltcChannel: 0 };
   try {
     const saved = JSON.parse(localStorage.getItem(IO_KEY) ?? '{}') as Partial<IoPrefs>;
-    if (saved.source === 'mtc') prefs.source = 'mtc';
+    if (saved.source === 'mtc' || saved.source === 'ltc') prefs.source = saved.source;
     if (saved.mode === 'show') prefs.mode = 'show';
     if (saved.countdownStyle === 'tenths') prefs.countdownStyle = 'tenths';
     if (typeof saved.midiInId === 'string') prefs.midiInId = saved.midiInId;
@@ -104,6 +108,8 @@ function loadIo(): IoPrefs {
     if (saved.clickOn === true) prefs.clickOn = true;
     if (typeof saved.clickVolume === 'number' && saved.clickVolume >= 0 && saved.clickVolume <= 1) prefs.clickVolume = saved.clickVolume;
     if (typeof saved.clickSinkId === 'string') prefs.clickSinkId = saved.clickSinkId;
+    if (typeof saved.ltcInId === 'string') prefs.ltcInId = saved.ltcInId;
+    if (typeof saved.ltcChannel === 'number' && Number.isInteger(saved.ltcChannel) && saved.ltcChannel >= 0) prefs.ltcChannel = saved.ltcChannel;
   } catch {
     // 読めない時は初期値のまま
   }
@@ -117,10 +123,10 @@ export const state = {
   activePageId: (initialShow.pages[0] as Page).id,
   selectedCueId: null as string | null,
   gen: new Generator(initialShow.frameRate),
-  /** MTC に追従する時計 */
+  /** 外部のタイムコード（MTC / LTC）に追従する時計 */
   ext: new ExternalClock(initialShow.frameRate),
-  /** 受信中の MTC のフレームレート。まだ受信していなければ null */
-  mtcRate: null as FrameRate | null,
+  /** 受信中のタイムコードのフレームレート。まだ受信していなければ null */
+  extRate: null as FrameRate | null,
   io: loadIo(),
   /** ページごとの実行済み・通過済みの Cue */
   fired: new Map<string, Set<string>>(),
@@ -375,19 +381,37 @@ export function setIo(patch: Partial<IoPrefs>): void {
   const sourceChanged = patch.source !== undefined && patch.source !== state.io.source;
   Object.assign(state.io, patch);
   persistIo();
-  if (sourceChanged) relocate(performance.now());
+  if (sourceChanged) {
+    // 前の入力元で受けた位置を引き継がない
+    state.ext = new ExternalClock(state.show.frameRate);
+    state.extRate = null;
+    relocate(performance.now());
+  }
   notifyChange();
+}
+
+/** レートが食い違っていても、表示される時刻が送り元と揃うように読み替える */
+function toShowFrames(frames: number, rate: FrameRate): number {
+  const whole = Math.floor(frames);
+  return convertFrameRate(whole, rate, state.show.frameRate) + (frames - whole);
 }
 
 /** 受信した MTC を時計に反映し、越えた Cue を実行する */
 export function feedMtc(event: MtcEvent, now: number): void {
-  state.mtcRate = event.rate;
-  // レートが食い違っていても、表示される時刻が送り元と揃うように読み替える
-  const whole = Math.floor(event.frames);
-  const frames = convertFrameRate(whole, event.rate, state.show.frameRate) + (event.frames - whole);
+  if (state.io.source !== 'mtc') return;
+  state.extRate = event.rate;
+  const frames = toShowFrames(event.frames, event.rate);
   if (event.kind === 'locate') state.ext.locate(frames);
   else state.ext.update(frames, now);
-  if (state.io.source === 'mtc') engineStep(performance.now());
+  engineStep(performance.now());
+}
+
+/** 読み取った LTC を時計に反映し、越えた Cue を実行する。at はその位置になった時刻 */
+export function feedLtc(frames: number, rate: FrameRate, at: number): void {
+  if (state.io.source !== 'ltc') return;
+  state.extRate = rate;
+  state.ext.update(toShowFrames(frames, rate), at);
+  engineStep(performance.now());
 }
 
 function fire(pageId: string, cue: Cue, manual: boolean): void {

@@ -122,7 +122,8 @@ export function testClick(): void {
   void audio.resume().then(() => beep(audio, audio.currentTime + 0.02));
 }
 
-async function refreshDevices(): Promise<void> {
+/** 出力先の一覧を読み直す（マイクの使用が許可された後は、名前が読めるようになる） */
+export async function refreshClickOutputs(): Promise<void> {
   try {
     const all = await navigator.mediaDevices.enumerateDevices();
     const outputs = all.filter((d) => d.kind === 'audiooutput');
@@ -144,7 +145,7 @@ export async function revealClickOutputs(): Promise<boolean> {
   } catch {
     return false;
   }
-  await refreshDevices();
+  await refreshClickOutputs();
   return namesKnown;
 }
 
@@ -159,6 +160,6 @@ export function initClick(): void {
   }
   document.addEventListener('pointerdown', resume, true);
   document.addEventListener('keydown', resume, true);
-  navigator.mediaDevices?.addEventListener('devicechange', () => void refreshDevices());
-  if (navigator.mediaDevices) void refreshDevices();
+  navigator.mediaDevices?.addEventListener('devicechange', () => void refreshClickOutputs());
+  if (navigator.mediaDevices) void refreshClickOutputs();
 }

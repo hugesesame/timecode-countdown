@@ -831,8 +831,14 @@ select {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* 画面が低くて欄が収まらない時は、右パネル全体をスクロールする */
+  overflow-y: auto;
   background: var(--bg-1);
   border-left: 1px solid var(--line);
+}
+
+.side__section {
+  flex-shrink: 0;
 }
 
 .side__section {
@@ -841,8 +847,8 @@ select {
 }
 
 .side__section--grow {
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 auto;
+  min-height: 120px;
   overflow-y: auto;
 }
 
@@ -1265,4 +1271,24 @@ body.is-show .page__delete {
 .side__title-buttons {
   display: flex;
   gap: 6px;
+}
+
+.meter {
+  flex: 1;
+  height: 8px;
+  margin-left: 4px;
+  overflow: hidden;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.meter__bar {
+  width: 0;
+  height: 100%;
+  background: var(--go);
+}
+
+.side__section.is-unused {
+  display: none;
 }

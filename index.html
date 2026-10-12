@@ -18,6 +18,7 @@
             <select id="source" class="select select--source" title="Timecode source">
               <option value="int">Gen</option>
               <option value="mtc">MTC</option>
+              <option value="ltc">LTC</option>
             </select>
             <span id="tc-status" class="tc__status"></span>
             <select id="rate" class="select" title="Frame rate"></select>
@@ -149,6 +150,26 @@
               </label>
               <span class="unit">s</span>
             </div>
+          </div>
+
+          <div id="ltc-section" class="side__section prog-only">
+            <div class="side__title">
+              <span class="lbl">LTC</span>
+              <button id="ltc-retry" class="btn btn--tiny" title="Try to open the audio input again" hidden>Retry</button>
+            </div>
+            <label class="field" title="Audio input that receives LTC. Opened while the source is LTC">
+              Input
+              <select id="ltc-in" class="select"></select>
+            </label>
+            <label class="field" title="Channel of the audio input that carries LTC">
+              Channel
+              <select id="ltc-channel" class="select"></select>
+            </label>
+            <div class="field" title="Input level of the LTC channel">
+              Level
+              <div class="meter"><div id="ltc-level" class="meter__bar"></div></div>
+            </div>
+            <div id="ltc-message" class="side__message" hidden></div>
           </div>
 
           <div class="side__section prog-only">
