@@ -21,6 +21,7 @@ import {
 import { cueThresholds, stageFor } from '../core/countdown';
 import { MIDI_RANGE, type Cue, type MidiTarget } from '../core/show';
 import { formatTimecode, framesToSeconds, parseTimecode } from '../core/timecode';
+import { setClickOn } from '../io/click';
 import { $, el, replay, setAttr } from './dom';
 
 type TextField = 'number' | 'name' | 'info';
@@ -71,6 +72,7 @@ export function initCueList(): void {
   $('auto-scroll').addEventListener('click', () =>
     updateSettings({ autoScroll: !state.show.settings.autoScroll }),
   );
+  $('click-toggle').addEventListener('click', () => setClickOn(!state.io.clickOn));
 
   list.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -159,6 +161,7 @@ function render(): void {
   $('mode-program').classList.toggle('is-on', !isShowMode());
   $('mode-show').classList.toggle('is-on', isShowMode());
   $('auto-scroll').classList.toggle('is-on', state.show.settings.autoScroll);
+  $('click-toggle').classList.toggle('is-on', state.io.clickOn);
   applySelection();
 }
 

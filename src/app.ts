@@ -83,10 +83,16 @@ export interface IoPrefs {
   midiOutId: string | null;
   /** 内蔵ジェネレーターのタイムコードを MTC として送る出力ポート */
   mtcOutId: string | null;
+  /** カウントダウンの 3、2、1 でクリック音を鳴らす */
+  clickOn: boolean;
+  /** クリック音の音量（0 〜 1） */
+  clickVolume: number;
+  /** クリック音の出力先。null はシステムの既定の出力 */
+  clickSinkId: string | null;
 }
 
 function loadIo(): IoPrefs {
-  const prefs: IoPrefs = { source: 'int', mode: 'program', countdownStyle: 'whole', midiInId: null, midiOutId: null, mtcOutId: null };
+  const prefs: IoPrefs = { source: 'int', mode: 'program', countdownStyle: 'whole', midiInId: null, midiOutId: null, mtcOutId: null, clickOn: false, clickVolume: 0.6, clickSinkId: null };
   try {
     const saved = JSON.parse(localStorage.getItem(IO_KEY) ?? '{}') as Partial<IoPrefs>;
     if (saved.source === 'mtc') prefs.source = 'mtc';
@@ -95,6 +101,9 @@ function loadIo(): IoPrefs {
     if (typeof saved.midiInId === 'string') prefs.midiInId = saved.midiInId;
     if (typeof saved.midiOutId === 'string') prefs.midiOutId = saved.midiOutId;
     if (typeof saved.mtcOutId === 'string') prefs.mtcOutId = saved.mtcOutId;
+    if (saved.clickOn === true) prefs.clickOn = true;
+    if (typeof saved.clickVolume === 'number' && saved.clickVolume >= 0 && saved.clickVolume <= 1) prefs.clickVolume = saved.clickVolume;
+    if (typeof saved.clickSinkId === 'string') prefs.clickSinkId = saved.clickSinkId;
   } catch {
     // 読めない時は初期値のまま
   }

@@ -73,6 +73,7 @@
             <button id="undo" class="btn prog-only" title="Undo (⌘Z / Ctrl+Z)">Undo</button>
             <button id="capture" class="btn prog-only" title="Capture the current timecode into the selected cue's Trigger Time (C). Creates a new cue if none is selected">Capture</button>
             <button id="auto-scroll" class="btn btn--toggle" title="Scroll automatically to keep the next cue in view">Auto Scroll</button>
+            <button id="click-toggle" class="btn btn--toggle" title="Play a click at 3, 2 and 1 seconds before the next cue on this page, and a higher tone at GO">Click</button>
             <span class="toolbar__hint prog-only">Space: Go · ↑↓: Select · Alt+↑↓: Move · Enter: Edit · C: Capture · F: Fullscreen</span>
             <span class="toolbar__hint show-only">Space: Go · ↑↓: Select · F: Fullscreen</span>
             <button id="fullscreen" class="btn btn--icon" title="Fullscreen (F)">
@@ -148,6 +149,26 @@
               </label>
               <span class="unit">s</span>
             </div>
+          </div>
+
+          <div class="side__section prog-only">
+            <div class="side__title">
+              <span class="lbl">CLICK</span>
+              <span class="side__title-buttons">
+                <button id="click-on" class="btn btn--tiny btn--toggle" title="Play a click at 3, 2 and 1 seconds before the next cue on this page, and a higher tone at GO. Same as the Click button in the toolbar">Off</button>
+                <button id="click-test" class="btn btn--tiny" title="Play one click now">Test</button>
+              </span>
+            </div>
+            <label class="field" title="Audio output that plays the click">
+              Output
+              <select id="click-out" class="select"></select>
+            </label>
+            <label class="field" title="Click volume">
+              Volume
+              <input id="click-volume" type="range" min="0" max="100" step="1" />
+            </label>
+            <button id="click-names" class="btn btn--wide" title="Browsers hide audio device names until microphone access is allowed. Nothing is recorded" hidden>Show device names</button>
+            <div id="click-message" class="side__message" hidden></div>
           </div>
 
           <div class="side__section prog-only">

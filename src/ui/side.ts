@@ -22,6 +22,17 @@ import { cueThresholds, formatCountdown, stageFor } from '../core/countdown';
 import { MIDI_RANGE, parseShowIo, type MidiTarget } from '../core/show';
 import { formatOffset, framesToSeconds, parseOffset } from '../core/timecode';
 import {
+  canSelectClickOutput,
+  clickNamesKnown,
+  clickOutputs,
+  onClickChange,
+  revealClickOutputs,
+  selectClickOutput,
+  setClickOn,
+  setClickVolume,
+  testClick,
+} from '../io/click';
+import {
   applyShowIo,
   currentShowIo,
   enableMidi,
@@ -49,9 +60,11 @@ export function initSide(): void {
   $('page-add').addEventListener('click', addPage);
   initSettings();
   initMidiPanel();
+  initClickPanel();
   initFile();
   onChange(render);
   onMidiChange(renderMidi);
+  onClickChange(renderClick);
   onFire((e) => {
     const els = pageEls.get(e.pageId);
     if (els && e.pageId !== state.activePageId) replay(els.item, 'is-go');
@@ -465,4 +478,60 @@ function initMidiPanel(): void {
       if (e.key === 'Enter') field.blur();
     });
   }
+}
+
+// ---------- クリック音 ----------
+
+function renderClick(): void {
+  const select = $<HTMLSelectElement>('click-out');
+  const selectedId = state.io.clickSinkId;
+  const fallback = el('option', '', 'System default');
+  fallback.value = '';
+  const options = clickOutputs().map((device) => {
+    const option = el('option', '', device.name);
+    option.value = device.id;
+    return option;
+  });
+  // 前に選んだ機器がつながっていない時も、選択は残しておく
+  if (selectedId && !clickOutputs().some((device) => device.id === selectedId)) {
+    const missing = el('option', '', clickNamesKnown() ? '(disconnected)' : '(saved device)');
+    missing.value = selectedId;
+    options.push(missing);
+  }
+  select.replaceChildren(fallback, ...options);
+  select.value = selectedId ?? '';
+  select.disabled = !canSelectClickOutput();
+
+  const on = $('click-on');
+  setText(on, state.io.clickOn ? 'On' : 'Off');
+  on.classList.toggle('is-on', state.io.clickOn);
+
+  $('click-names').hidden = clickNamesKnown() || !canSelectClickOutput();
+  const message = $('click-message');
+  message.textContent = 'This browser cannot choose the click output. Open the app in Chrome or Edge.';
+  message.hidden = canSelectClickOutput();
+}
+
+function initClickPanel(): void {
+  const select = $<HTMLSelectElement>('click-out');
+  select.addEventListener('change', () => {
+    selectClickOutput(select.value || null);
+    select.blur();
+  });
+  const volume = $<HTMLInputElement>('click-volume');
+  volume.value = String(Math.round(state.io.clickVolume * 100));
+  volume.addEventListener('input', () => setClickVolume(Number(volume.value) / 100));
+  volume.addEventListener('change', () => {
+    testClick();
+    volume.blur();
+  });
+  $('click-test').addEventListener('click', testClick);
+  $('click-on').addEventListener('click', () => setClickOn(!state.io.clickOn));
+  onChange(renderClick);
+  $('click-names').addEventListener('click', () => {
+    void revealClickOutputs().then((ok) => {
+      if (!ok) toast('Microphone access was not allowed, so device names stay hidden', true);
+    });
+  });
+  renderClick();
 }

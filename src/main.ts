@@ -10,6 +10,7 @@ import {
   state,
   undo,
 } from './app';
+import { initClick } from './io/click';
 import { initMidi } from './io/midi';
 import { editSelected, initCueList, updateCueList } from './ui/cuelist';
 import { initHeader, updateHeader } from './ui/header';
@@ -20,6 +21,7 @@ initHeader();
 initCueList();
 initSide();
 initMidi();
+initClick();
 
 function frame(): void {
   const now = performance.now();
