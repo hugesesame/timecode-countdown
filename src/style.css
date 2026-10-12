@@ -509,18 +509,24 @@ select {
   box-shadow: 0 0 14px color-mix(in srgb, var(--go) 70%, transparent);
 }
 
-.lane.is-go .lane__go {
-  animation: lane-go 0.9s ease-out;
+/* GO の合図。マーカーより奥に描くので、続けて来る Cue が隠れない */
+.lane.is-go::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--go);
+  transform-origin: right;
+  animation: lane-go 0.9s ease-out both;
 }
 
 @keyframes lane-go {
   0% {
-    width: 100%;
-    opacity: 0.85;
+    opacity: 0.3;
+    transform: scaleX(1);
   }
   100% {
-    width: 5px;
-    opacity: 1;
+    opacity: 0.3;
+    transform: scaleX(0);
   }
 }
 
