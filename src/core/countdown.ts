@@ -75,3 +75,23 @@ export function laneMarkers(
   }
   return markers;
 }
+
+/**
+ * カウントダウンが 3、2、1 秒を越えた瞬間を見つける（クリック音と同じタイミングで画面を光らせる用）。
+ * 毎フレーム step を呼ぶ。越えた時だけ、その数を返す。
+ */
+export class BeatWatcher {
+  private cue: string | null = null;
+  private last = Infinity;
+
+  constructor(private readonly counts: readonly number[] = [3, 2, 1]) {}
+
+  step(cue: string | null, remainingSec: number): number | null {
+    const { cue: prevCue, last } = this;
+    this.cue = cue;
+    this.last = remainingSec;
+    // 頭出しなどで飛んだ時は、越えたことにしない
+    if (cue === null || cue !== prevCue || last - remainingSec > 0.5) return null;
+    return this.counts.find((n) => last > n && remainingSec <= n) ?? null;
+  }
+}

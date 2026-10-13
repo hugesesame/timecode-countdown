@@ -332,11 +332,14 @@ select {
 }
 
 #fullscreen .i-exit,
-#fullscreen.is-on .i-enter {
+#fullscreen.is-on .i-enter,
+.dsp__fs .i-exit,
+.dsp__fs.is-on .i-enter {
   display: none;
 }
 
-#fullscreen.is-on .i-exit {
+#fullscreen.is-on .i-exit,
+.dsp__fs.is-on .i-exit {
   display: block;
 }
 
@@ -344,13 +347,14 @@ select {
 
 .cd {
   --c: var(--text);
+  --cd-bg: var(--bg-2);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 8px;
   min-width: 0;
   padding: 10px 14px 12px;
-  background: var(--bg-2);
+  background: var(--cd-bg);
   border: 1px solid var(--line);
   border-radius: 12px;
 }
@@ -383,11 +387,11 @@ select {
 
 @keyframes cd-go {
   0% {
-    background: color-mix(in srgb, var(--go) 55%, var(--bg-2));
+    background: color-mix(in srgb, var(--go) 55%, var(--cd-bg));
     border-color: var(--go);
   }
   100% {
-    background: var(--bg-2);
+    background: var(--cd-bg);
   }
 }
 
@@ -474,7 +478,7 @@ select {
 }
 
 .lane__track,
-#lane-ticks {
+.lane__ticks {
   position: absolute;
   inset: 0 5px 0 0;
 }
@@ -1291,4 +1295,146 @@ body.is-show .page__delete {
 
 .side__section.is-unused {
   display: none;
+}
+
+/* ---------- 表示ウィンドウ: カウントダウンとレーンだけを、離れた場所から読める大きさで出す ---------- */
+
+body.is-display {
+  min-width: 0;
+}
+
+.dsp {
+  --cd-bg: var(--bg-0);
+  position: relative;
+  height: 100%;
+  gap: 1vh;
+  --frame: 1.2vh;
+  padding: 3vh 3vw 4vh;
+  border-width: var(--frame);
+  border-radius: 0;
+}
+
+.dsp__cue {
+  display: flex;
+  align-items: baseline;
+  gap: 2vw;
+  min-width: 0;
+  margin-right: 6vw;
+  font-size: 7vh;
+}
+
+.dsp__cue .lbl {
+  font-size: 3vh;
+}
+
+.dsp .cd__number {
+  font-size: inherit;
+}
+
+.dsp__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.dsp__info {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 1.4em;
+  /* フルスクリーンボタンに重ならないよう、右を空ける */
+  margin-right: 6vw;
+  color: var(--muted);
+  font-size: 4.5vh;
+}
+
+.dsp__time {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  /* 見た目の中央より少し上に置く */
+  padding-bottom: 8vh;
+  color: var(--c);
+  font: 600 min(46vh, 27vw) / 1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.dsp__time[data-long='true'] {
+  font-size: min(46vh, 17vw);
+}
+
+.dsp .lane {
+  flex-shrink: 0;
+  height: 11vh;
+  border-radius: 1vh;
+}
+
+.dsp .lane__chip {
+  font-size: 4.5vh;
+}
+
+.dsp .lane__tick span {
+  font-size: 2vh;
+}
+
+.dsp .lane__go,
+.dsp .lane__marker::after {
+  width: 0.6vw;
+}
+
+.dsp .lane__track,
+.dsp .lane__ticks {
+  right: 0.6vw;
+}
+
+/* フルスクリーンの間は、マウスを乗せた時だけ出す */
+.dsp__fs {
+  position: absolute;
+  top: 3vh;
+  right: 3vw;
+  width: max(30px, 5vh);
+  height: max(30px, 5vh);
+  padding: 0;
+  opacity: 0.6;
+}
+
+.dsp__fs svg {
+  width: 50%;
+  height: 50%;
+}
+
+.dsp__fs.is-on {
+  opacity: 0;
+}
+
+.dsp__fs:hover {
+  opacity: 1;
+}
+
+/* クリック音と同じタイミングで、枠を一瞬明るくする。枠の上に重ねて描く */
+.dsp__beat {
+  position: absolute;
+  inset: calc(var(--frame) * -1);
+  border: var(--frame) solid var(--c);
+  box-shadow: inset 0 0 14vh color-mix(in srgb, var(--c) 55%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dsp__beat.is-on {
+  animation: dsp-beat 0.45s ease-out;
+}
+
+@keyframes dsp-beat {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }

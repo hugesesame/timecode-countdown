@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { cueThresholds, formatCountdown, laneMarkers, nextCue, stageFor } from './countdown';
+import { cueThresholds, formatCountdown, laneMarkers, nextCue, stageFor, BeatWatcher } from './countdown';
 import type { EngineCue } from './engine';
 
 const cue = (id: string, triggerFrame: number | null, enabled = true): EngineCue => ({
@@ -150,5 +150,42 @@ describe('formatCountdown: 整数表示', () => {
 
   test('負の値は 0', () => {
     expect(formatCountdown(-1, 'whole')).toBe('0');
+  });
+});
+
+describe('BeatWatcher', () => {
+  test('残り時間が 3、2、1 秒を越えるたびに、その数を返す', () => {
+    const w = new BeatWatcher();
+    expect(w.step('a', 3.2)).toBeNull();
+    expect(w.step('a', 3.0)).toBe(3);
+    expect(w.step('a', 2.9)).toBeNull();
+    w.step('a', 2.4);
+    expect(w.step('a', 1.98)).toBe(2);
+    w.step('a', 1.5);
+    w.step('a', 1.02);
+    expect(w.step('a', 0.99)).toBe(1);
+    expect(w.step('a', 0.5)).toBeNull();
+  });
+
+  test('タイムコードが飛んで入ってきた時は返さない', () => {
+    const w = new BeatWatcher();
+    w.step('a', 20);
+    expect(w.step('a', 2.5)).toBeNull();
+    w.step('a', 2.01);
+    expect(w.step('a', 1.99)).toBe(2);
+  });
+
+  test('次の Cue が替わった時は返さない', () => {
+    const w = new BeatWatcher();
+    w.step('a', 0.01);
+    expect(w.step('b', 2.99)).toBeNull();
+    expect(w.step(null, 0)).toBeNull();
+  });
+
+  test('止まっている時と戻った時は返さない', () => {
+    const w = new BeatWatcher();
+    w.step('a', 2.5);
+    expect(w.step('a', 2.5)).toBeNull();
+    expect(w.step('a', 3.5)).toBeNull();
   });
 });

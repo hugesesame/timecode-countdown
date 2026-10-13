@@ -1,35 +1,26 @@
 import {
-  activePage,
   clockRunning,
-  firedOf,
   goTarget,
   isShowMode,
   locateTo,
   manualGo,
-  nextOf,
   onChange,
   onFire,
   preroll,
   setFrameRate,
   setIo,
   state,
-  timedCues,
   type Source,
   togglePlay,
   toggleTcIgnore,
 } from '../app';
-import { cueThresholds, formatCountdown, laneMarkers, stageFor } from '../core/countdown';
-import {
-  FRAME_RATES,
-  FRAME_RATE_LABELS,
-  formatTimecode,
-  framesToSeconds,
-  parseTimecode,
-  type FrameRate,
-} from '../core/timecode';
+import { FRAME_RATES, FRAME_RATE_LABELS, formatTimecode, parseTimecode, type FrameRate } from '../core/timecode';
 import { ltcStatus } from '../io/ltc';
 import { enableMidi } from '../io/midi';
-import { $, el, replay, setAttr, setText } from './dom';
+import { createCountdownView, type CountdownView } from './countdown';
+import { $, el, setText } from './dom';
+
+let countdown: CountdownView;
 
 const cueLabel = (number: string, name: string): string => [number, name].filter(Boolean).join('  ') || '—';
 
@@ -63,6 +54,17 @@ export function initHeader(): void {
     setIo({ countdownStyle: state.io.countdownStyle === 'whole' ? 'tenths' : 'whole' });
   });
 
+  countdown = createCountdownView({
+    root: $('cd'),
+    number: $('cd-number'),
+    name: $('cd-name'),
+    info: $('cd-info'),
+    time: $('cd-time'),
+    lane: $('lane'),
+    ticks: $('lane-ticks'),
+    track: $('lane-track'),
+  });
+
   initLocateInput();
   onChange(renderStatic);
   renderStatic();
@@ -70,8 +72,7 @@ export function initHeader(): void {
   onFire((e) => {
     if (e.pageId !== state.activePageId) return;
     setText($('cd-last'), cueLabel(e.cue.number, e.cue.name) + (e.manual ? '  (manual)' : ''));
-    replay($('cd'), 'is-go');
-    replay($('lane'), 'is-go');
+    countdown.go();
   });
 }
 
@@ -106,7 +107,7 @@ function initLocateInput(): void {
   input.addEventListener('blur', close);
 }
 
-/** 設定が変わった時だけ作り直す部分: フレームレートとレーンの目盛り */
+/** 設定が変わった時だけ作り直す部分 */
 function renderStatic(): void {
   $<HTMLSelectElement>('rate').value = state.show.frameRate;
   // 本番中に入力元やフレームレートを誤って変えないようにする
@@ -120,24 +121,8 @@ function renderStatic(): void {
   $('tc-digits').title = isInt ? 'Click to locate' : '';
   for (const id of ['tc-rewind', 'tc-play', 'tc-preroll']) $<HTMLButtonElement>(id).disabled = !isInt;
 
-  const { standbySec, warnSec, finalSec } = state.show.settings;
-  const lane = $('lane');
-  const at = (sec: number): number => (1 - Math.min(sec, standbySec) / standbySec) * 100;
-  lane.style.setProperty('--warn-pos', `${at(warnSec)}%`);
-  lane.style.setProperty('--final-pos', `${at(finalSec)}%`);
-
-  const ticks = $('lane-ticks');
-  ticks.replaceChildren();
-  const labelled = new Set([standbySec, warnSec, finalSec]);
-  for (let sec = Math.floor(standbySec); sec >= 1; sec--) {
-    const tick = el('div', labelled.has(sec) ? 'lane__tick lane__tick--major' : 'lane__tick');
-    tick.style.left = `${at(sec)}%`;
-    if (labelled.has(sec)) tick.append(el('span', '', String(sec)));
-    ticks.append(tick);
-  }
+  countdown.renderStatic();
 }
-
-const markerEls = new Map<string, HTMLElement>();
 
 /** LTC の音声入力を使えない時の表示 */
 const LTC_ALERTS: Record<string, string> = {
@@ -173,11 +158,7 @@ function updateStatus(now: number): void {
 }
 
 export function updateHeader(now: number, pos: number): void {
-  const { frameRate, settings } = state.show;
-  const page = activePage();
-  const fired = firedOf(page.id);
-
-  setText($('tc-digits'), formatTimecode(pos, frameRate));
+  setText($('tc-digits'), formatTimecode(pos, state.show.frameRate));
   $('tc-play').classList.toggle('is-running', state.io.source === 'int' && state.gen.running);
   updateStatus(now);
 
@@ -190,46 +171,5 @@ export function updateHeader(now: number, pos: number): void {
   const target = goTarget(pos);
   setText($('go-target'), target ? cueLabel(target.number, target.name) : '—');
 
-  // カウントダウン
-  const next = nextOf(page, pos);
-  const cd = $('cd');
-  if (next) {
-    const remaining = framesToSeconds(next.at - pos, frameRate);
-    setAttr(cd, 'data-stage', stageFor(remaining, cueThresholds(next.cue.standbySec, settings)));
-    setText($('cd-number'), next.cue.number || '—');
-    setText($('cd-name'), next.cue.name);
-    setText($('cd-info'), next.cue.info);
-    setText($('cd-time'), formatCountdown(remaining, state.io.countdownStyle));
-  } else {
-    setAttr(cd, 'data-stage', 'none');
-    setText($('cd-number'), '—');
-    setText($('cd-name'), '');
-    setText($('cd-info'), '');
-    setText($('cd-time'), '--');
-  }
-
-  // レーン
-  const track = $('lane-track');
-  const markers = laneMarkers(timedCues(page), fired, pos, frameRate, settings.standbySec);
-  const alive = new Set<string>();
-  for (const m of markers) {
-    alive.add(m.id);
-    let node = markerEls.get(m.id);
-    if (!node) {
-      node = el('div', 'lane__marker');
-      node.append(el('span', 'lane__chip'));
-      markerEls.set(m.id, node);
-      track.append(node);
-    }
-    const cue = page.cues.find((c) => c.id === m.id);
-    setText(node.firstElementChild as HTMLElement, cue?.number || '•');
-    node.style.left = `${m.progress * 100}%`;
-    const thresholds = cueThresholds(cue?.standbySec ?? null, settings);
-    setAttr(node, 'data-stage', stageFor((1 - m.progress) * settings.standbySec, thresholds));
-  }
-  for (const [id, node] of markerEls) {
-    if (alive.has(id)) continue;
-    node.remove();
-    markerEls.delete(id);
-  }
+  countdown.update(pos);
 }
