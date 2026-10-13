@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { ExternalClock } from './clock';
+import { ExternalClock, arrivalTime } from './clock';
 
 describe('ExternalClock', () => {
   test('信号が来るまでは位置 0 で止まっている', () => {
@@ -54,5 +54,21 @@ describe('ExternalClock', () => {
     c.position(100);
     c.locate(102);
     expect(c.position(100)).toBe(102);
+  });
+});
+
+describe('arrivalTime', () => {
+  test('少し前の時刻が付いていれば、その時刻を使う', () => {
+    expect(arrivalTime(995, 1000)).toBe(995);
+    expect(arrivalTime(1000, 1000)).toBe(1000);
+  });
+
+  test('大きくずれた時刻が付いている時は、届いた時刻を使う', () => {
+    expect(arrivalTime(1000 - 139051, 1000)).toBe(1000);
+    expect(arrivalTime(0, 1000)).toBe(1000);
+  });
+
+  test('先の時刻が付いている時は、届いた時刻を使う', () => {
+    expect(arrivalTime(1040, 1000)).toBe(1000);
   });
 });

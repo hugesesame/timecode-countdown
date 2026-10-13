@@ -435,13 +435,23 @@ function renderMidi(): void {
 }
 
 /** MTC の送受信が途切れた記録を表示する。長時間動かした時に、どちら側で起きたかを見分けるため。 */
+let seenBefore = { quarter: 0, full: 0 };
+
 function renderDiagnostics(): void {
   const node = $('midi-diag');
-  const { rx, tx } = mtcDiagnostics();
+  const { rx, tx, seen } = mtcDiagnostics();
   const lines: string[] = [];
   if (state.io.midiInId) {
     lines.push(`MTC In : ${rx.gaps} gaps (max ${Math.round(rx.longestMs)} ms), ${rx.resyncs} resyncs`);
+    // 直近 1 秒に届いたメッセージの種類と、受信時刻の記録のずれ
+    const qf = seen.quarter - seenBefore.quarter;
+    const full = seen.full - seenBefore.full;
+    // 付いてきた時刻が大きくずれている送り元では、届いた時刻を使っている
+    const lag = Math.round(seen.stampLagMs);
+    const stamp = lag >= 0 && lag <= 100 ? `stamp ${lag} ms` : 'stamp ignored';
+    lines.push(`         ${qf} QF/s, ${full} full/s, ${stamp}`);
   }
+  seenBefore = { quarter: seen.quarter, full: seen.full };
   if (state.io.mtcOutId) {
     lines.push(`MTC Out: ${tx.late} late (max ${Math.round(tx.longestMs)} ms), ${tx.restarts} restarts`);
   }

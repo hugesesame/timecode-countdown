@@ -43,3 +43,12 @@ export class ExternalClock {
     return pos;
   }
 }
+
+/**
+ * メッセージに付いてきた時刻を、時計の基準として使える時刻に直す。
+ * 送り元によっては、今の時刻と大きくずれた時刻が付いてくる。その時は、届いた時刻を使う。
+ */
+export function arrivalTime(stampMs: number, nowMs: number, maxLagMs = 100): number {
+  const lag = nowMs - stampMs;
+  return lag >= 0 && lag <= maxLagMs ? stampMs : nowMs;
+}

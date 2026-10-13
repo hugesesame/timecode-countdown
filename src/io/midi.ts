@@ -1,4 +1,5 @@
 import { feedMtc, onFire, setIo, state } from '../app';
+import { arrivalTime } from '../core/clock';
 import { GapMeter } from '../core/gapmeter';
 import { noteOff, noteOn, resolveMidi } from '../core/midi';
 import { MtcDecoder } from '../core/mtc';
@@ -46,11 +47,17 @@ function bindInput(): void {
   if (!next) return;
   next.onmidimessage = (e) => {
     if (!e.data) return;
+    if (e.data[0] === 0xf1) rxSeen.quarter += 1;
+    else if (e.data[0] === 0xf0) rxSeen.full += 1;
+    const now = performance.now();
+    rxSeen.stampLagMs = now - e.timeStamp;
+    // 送り元によっては、付いてくる時刻が今の時刻と大きくずれている
+    const at = arrivalTime(e.timeStamp, now);
     // 頭出し（フルフレーム）の後は、止まっていても途切れとは数えない
-    if (e.data[0] === 0xf1) rxGaps.mark(e.timeStamp);
+    if (e.data[0] === 0xf1) rxGaps.mark(at);
     else if (e.data[0] === 0xf0) rxGaps.pause();
     const event = decoder.feed(e.data);
-    if (event) feedMtc(event, e.timeStamp);
+    if (event) feedMtc(event, at);
   };
 }
 
@@ -164,15 +171,19 @@ export function initMidi(): void {
 export interface MtcDiagnostics {
   /** 受信: 途切れた回数、最長の間隔、クォーターフレームの順番が飛んだ回数 */
   rx: { gaps: number; longestMs: number; resyncs: number };
+  /** 受信したメッセージの数（クォーターフレーム、フルフレーム）と、受信時刻の記録が今からどれだけ前か */
+  seen: { quarter: number; full: number; stampLagMs: number };
   /** 送信: 処理が遅れた回数、最長の間隔、送りそびれて送り直した回数 */
   tx: { late: number; longestMs: number; restarts: number };
 }
 
 let rxResyncsBefore = 0;
+const rxSeen = { quarter: 0, full: 0, stampLagMs: 0 };
 
 export function mtcDiagnostics(): MtcDiagnostics {
   return {
     rx: { gaps: rxGaps.count, longestMs: rxGaps.longestMs, resyncs: decoder.resyncs - rxResyncsBefore },
+    seen: { ...rxSeen },
     tx: { late: txGaps.count, longestMs: txGaps.longestMs, restarts: txRestartsBefore + (mtcOut?.restarts ?? 0) },
   };
 }
