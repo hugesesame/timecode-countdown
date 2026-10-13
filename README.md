@@ -84,6 +84,12 @@ A cue fires when timecode passes its trigger time. You can also fire by hand wit
 
 If timecode jumps forward, the cues it jumped over do not fire. If it goes back, the cues after that position become active again.
 
+### Countdown
+
+- Click the countdown number to switch between whole seconds and tenths of a second. Whole seconds are rounded up, so the moment the number reaches 0 is GO. The display window follows the same setting.
+- The seconds at which the color changes are set under **COUNTDOWN** in the side panel: Standby (yellow), Warn (orange) and Final (red). The lane shows the Standby time from end to end.
+- The **Stby** column sets a different Standby time for one cue.
+
 ### Keys
 
 | Key | Action |
