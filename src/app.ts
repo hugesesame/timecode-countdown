@@ -156,6 +156,9 @@ export const onChange = (fn: Listener): void => void changeListeners.push(fn);
 export const onSelection = (fn: Listener): void => void selectionListeners.push(fn);
 /** Cue が実行された時 */
 export const onFire = (fn: (e: FireEvent) => void): void => void fireListeners.push(fn);
+const replaceListeners: Listener[] = [];
+/** New や Import で、ショーが別のものに替わった時 */
+export const onReplace = (fn: Listener): void => void replaceListeners.push(fn);
 
 const notifyChange = (): void => changeListeners.forEach((fn) => fn());
 const notifySelection = (): void => selectionListeners.forEach((fn) => fn());
@@ -295,6 +298,7 @@ export function replaceShow(show: Show): void {
   if (isShowMode()) return;
   pushUndo();
   adoptShow(show);
+  replaceListeners.forEach((fn) => fn());
 }
 
 export function newShow(): void {

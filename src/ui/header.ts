@@ -1,11 +1,14 @@
 import {
+  activePage,
   clockRunning,
+  firedOf,
   goTarget,
   isShowMode,
   locateTo,
   manualGo,
   onChange,
   onFire,
+  onReplace,
   preroll,
   setFrameRate,
   setIo,
@@ -21,6 +24,9 @@ import { createCountdownView, type CountdownView } from './countdown';
 import { $, el, setText } from './dom';
 
 let countdown: CountdownView;
+
+/** ページごとの、最後に実行した Cue */
+const lastFired = new Map<string, { cueId: string; manual: boolean }>();
 
 const cueLabel = (number: string, name: string): string => [number, name].filter(Boolean).join('  ') || '—';
 
@@ -70,10 +76,10 @@ export function initHeader(): void {
   renderStatic();
 
   onFire((e) => {
-    if (e.pageId !== state.activePageId) return;
-    setText($('cd-last'), cueLabel(e.cue.number, e.cue.name) + (e.manual ? '  (manual)' : ''));
-    countdown.go();
+    lastFired.set(e.pageId, { cueId: e.cue.id, manual: e.manual });
+    if (e.pageId === state.activePageId) countdown.go();
   });
+  onReplace(() => lastFired.clear());
 }
 
 /** タイムコード表示をクリックすると、時刻を打ち込んで頭出しできる */
@@ -170,6 +176,12 @@ export function updateHeader(now: number, pos: number): void {
 
   const target = goTarget(pos);
   setText($('go-target'), target ? cueLabel(target.number, target.name) : '—');
+
+  // タイムコードが戻ってその Cue が再び有効になったら、LAST は消す
+  const page = activePage();
+  const last = lastFired.get(page.id);
+  const lastCue = last && firedOf(page.id).has(last.cueId) ? page.cues.find((c) => c.id === last.cueId) : undefined;
+  setText($('cd-last'), last && lastCue ? cueLabel(lastCue.number, lastCue.name) + (last.manual ? '  (manual)' : '') : '—');
 
   countdown.update(pos);
 }
