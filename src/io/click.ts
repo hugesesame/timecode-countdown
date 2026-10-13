@@ -94,11 +94,14 @@ function tick(): void {
   for (const click of result.clicks) beep(ctx, ctx.currentTime + click.inSec, click.count === 0);
 }
 
+/** Click が On なのに、ブラウザがまだ音を出させてくれない状態か（ページを操作すると出せるようになる） */
+export const clickBlocked = (): boolean => state.io.clickOn && ctx?.state !== 'running';
+
 /** ブラウザは、ユーザーの操作があるまで音を出させない。操作のたびに再開を試みる */
 function resume(): void {
   if (!state.io.clickOn) return;
   const audio = context();
-  if (audio.state === 'suspended') void audio.resume();
+  if (audio.state !== 'running') void audio.resume();
 }
 
 export function setClickOn(on: boolean): void {

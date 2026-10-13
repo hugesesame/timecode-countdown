@@ -21,8 +21,8 @@ import {
 import { cueThresholds, stageFor } from '../core/countdown';
 import { MIDI_RANGE, type Cue, type MidiTarget } from '../core/show';
 import { formatTimecode, framesToSeconds, parseTimecode } from '../core/timecode';
-import { setClickOn } from '../io/click';
-import { $, el, replay, setAttr } from './dom';
+import { clickBlocked, setClickOn } from '../io/click';
+import { $, el, replay, setAttr, setText } from './dom';
 
 type TextField = 'number' | 'name' | 'info';
 type MidiField = keyof MidiTarget;
@@ -301,7 +301,20 @@ function initDrag(list: HTMLElement): void {
 }
 
 /** 毎フレーム: 次の Cue の強調、通過済みの表示、行の進捗バー */
+const CLICK_TITLE =
+  'Play a click at 3, 2 and 1 seconds before the next cue on this page, and a higher tone at GO';
+
+/** 再読み込みの直後など、ブラウザがまだ音を出させてくれない間は、Click ボタンで知らせる */
+function updateClickToggle(): void {
+  const button = $('click-toggle');
+  const blocked = clickBlocked();
+  setText(button, blocked ? '⚠ Click' : 'Click');
+  button.classList.toggle('is-alert', blocked);
+  setAttr(button, 'title', blocked ? 'Sound is blocked by the browser. Click anywhere on the page to enable it' : CLICK_TITLE);
+}
+
 export function updateCueList(pos: number): void {
+  updateClickToggle();
   const page = activePage();
   const fired = firedOf(page.id);
   const { settings, frameRate } = state.show;
