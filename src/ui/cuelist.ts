@@ -21,7 +21,7 @@ import {
 import { cueThresholds, stageFor } from '../core/countdown';
 import { MIDI_RANGE, type Cue, type MidiTarget } from '../core/show';
 import { formatTimecode, framesToSeconds, parseTimecode } from '../core/timecode';
-import { clickBlocked, setClickOn } from '../io/click';
+import { clickBlocked, toggleClick } from '../io/click';
 import { $, el, replay, setAttr, setText } from './dom';
 
 type TextField = 'number' | 'name' | 'info';
@@ -72,7 +72,7 @@ export function initCueList(): void {
   $('auto-scroll').addEventListener('click', () =>
     updateSettings({ autoScroll: !state.show.settings.autoScroll }),
   );
-  $('click-toggle').addEventListener('click', () => setClickOn(!state.io.clickOn));
+  $('click-toggle').addEventListener('click', toggleClick);
 
   list.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -310,7 +310,7 @@ function updateClickToggle(): void {
   const blocked = clickBlocked();
   setText(button, blocked ? '⚠ Click' : 'Click');
   button.classList.toggle('is-alert', blocked);
-  setAttr(button, 'title', blocked ? 'Sound is blocked by the browser. Click anywhere on the page to enable it' : CLICK_TITLE);
+  setAttr(button, 'title', blocked ? 'Sound is blocked by the browser. Click here or anywhere on the page to enable it' : CLICK_TITLE);
 }
 
 export function updateCueList(pos: number): void {

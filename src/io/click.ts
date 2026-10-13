@@ -15,7 +15,9 @@ const GO_SEC = 0.18;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let appliedSinkId = '';
+/** 出力先の切り替えを頼んでいる最中か */
+let sinkBusy = false;
+let sinkRetryAt = 0;
 let devices: AudioDevice[] = [];
 let namesKnown = false;
 const scheduler = new ClickScheduler();
@@ -33,9 +35,25 @@ export const clickNamesKnown = (): boolean => namesKnown;
 /** 出力先を選べるブラウザか（Chrome / Edge） */
 export const canSelectClickOutput = (): boolean => 'setSinkId' in AudioContext.prototype;
 
+/** 出力先を選べるブラウザでの AudioContext */
+type SinkContext = AudioContext & { sinkId?: unknown; setSinkId(id: string): Promise<void> };
+
+function createContext(): AudioContext {
+  const sinkId = state.io.clickSinkId ?? '';
+  if (sinkId && canSelectClickOutput()) {
+    try {
+      // 最初から選んだ出力先で開く。後から切り替えると、切り替わる前の音が既定の出力先に出てしまう
+      return new AudioContext({ latencyHint: 'interactive', sinkId } as AudioContextOptions);
+    } catch {
+      // 選んだ機器が外されている時は、既定の出力先で開く
+    }
+  }
+  return new AudioContext({ latencyHint: 'interactive' });
+}
+
 function context(): AudioContext {
   if (!ctx) {
-    ctx = new AudioContext({ latencyHint: 'interactive' });
+    ctx = createContext();
     master = ctx.createGain();
     master.connect(ctx.destination);
   }
@@ -44,13 +62,19 @@ function context(): AudioContext {
   return ctx;
 }
 
+/** 実際の出力先が選んだものと違っていたら、切り替える。うまくいかなかった時は、少し待ってからやり直す */
 function applySink(): void {
+  if (!ctx || sinkBusy || !canSelectClickOutput()) return;
+  const audio = ctx as SinkContext;
   const id = state.io.clickSinkId ?? '';
-  if (!ctx || id === appliedSinkId || !canSelectClickOutput()) return;
-  appliedSinkId = id;
-  // 選んだ機器が外されている時は、今の出力先のまま鳴らす
-  const audio = ctx as AudioContext & { setSinkId(id: string): Promise<void> };
-  audio.setSinkId(id).catch(() => (appliedSinkId = ''));
+  const current = typeof audio.sinkId === 'string' ? audio.sinkId : '';
+  if (id === current || performance.now() < sinkRetryAt) return;
+  sinkBusy = true;
+  audio
+    .setSinkId(id)
+    // 選んだ機器が外されている時は、今の出力先のまま鳴らす
+    .catch(() => (sinkRetryAt = performance.now() + 2000))
+    .finally(() => (sinkBusy = false));
 }
 
 function beep(audio: AudioContext, at: number, isGo = false): void {
@@ -85,7 +109,10 @@ function tick(): void {
     if (ctx && scheduler.tick(null, 0, false).cancel) cancelPending(ctx);
     return;
   }
+  applySink();
   const now = performance.now();
+  watchClock(ctx, now);
+  if (stalled) return;
   const pos = clockPosition(now);
   const next = nextOf(activePage(), pos);
   const remaining = next ? framesToSeconds(next.at - pos, state.show.frameRate) : 0;
@@ -94,14 +121,51 @@ function tick(): void {
   for (const click of result.clicks) beep(ctx, ctx.currentTime + click.inSec, click.count === 0);
 }
 
-/** Click が On なのに、ブラウザがまだ音を出させてくれない状態か（ページを操作すると出せるようになる） */
-export const clickBlocked = (): boolean => state.io.clickOn && ctx?.state !== 'running';
+/** Click が On なのに、音を出せない状態か（ページを操作すると出せるようになる） */
+export const clickBlocked = (): boolean => state.io.clickOn && (ctx?.state !== 'running' || stalled);
+
+/** 音声の時計が進んでいるかの見張り。「動いている」と報告されていても、実際には止まっていることがある */
+let stalled = false;
+let seenTime = -1;
+let seenAt = 0;
+let kickAt = 0;
+
+function watchClock(audio: AudioContext, now: number): void {
+  if (audio.currentTime !== seenTime) {
+    seenTime = audio.currentTime;
+    seenAt = now;
+    stalled = false;
+    return;
+  }
+  if (now - seenAt < 500) return;
+  stalled = true;
+  if (now < kickAt) return;
+  // 止めてから動かし直すと、時計が進み始める
+  kickAt = now + 2000;
+  void audio.suspend().then(() => audio.resume());
+}
 
 /** ブラウザは、ユーザーの操作があるまで音を出させない。操作のたびに再開を試みる */
 function resume(): void {
+  blockedAtGesture = clickBlocked() ? performance.now() : 0;
   if (!state.io.clickOn) return;
   const audio = context();
   if (audio.state !== 'running') void audio.resume();
+}
+
+/** 直前の操作の時点で音が止められていたなら、その時刻 */
+let blockedAtGesture = 0;
+
+/**
+ * ツールバーの Click ボタン。
+ * 音が止められている間（⚠ の表示）に押された時は、Off にはせず、音を出せるようにするだけにする。
+ */
+export function toggleClick(): void {
+  if (state.io.clickOn && performance.now() - blockedAtGesture < 1000) {
+    resume();
+    return;
+  }
+  setClickOn(!state.io.clickOn);
 }
 
 export function setClickOn(on: boolean): void {
@@ -116,6 +180,7 @@ export function setClickVolume(volume: number): void {
 
 export function selectClickOutput(id: string | null): void {
   setIo({ clickSinkId: id });
+  sinkRetryAt = 0;
   applySink();
 }
 
