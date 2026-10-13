@@ -850,6 +850,13 @@ select {
   border-bottom: 1px solid var(--line);
 }
 
+.side__version {
+  flex-shrink: 0;
+  padding: 8px 12px 10px;
+  color: var(--dim);
+  font: 11px var(--mono);
+}
+
 .side__section--grow {
   flex: 1 0 auto;
   min-height: 120px;

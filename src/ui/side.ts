@@ -60,6 +60,7 @@ import {
   type PortInfo,
 } from '../io/midi';
 import { $, el, replay, setAttr, setText, toast } from './dom';
+import { version } from '../../package.json';
 
 interface PageEls {
   item: HTMLElement;
@@ -69,6 +70,7 @@ interface PageEls {
 const pageEls = new Map<string, PageEls>();
 
 export function initSide(): void {
+  $('app-version').textContent = `TC-CD ${version} beta`;
   $('page-add').addEventListener('click', addPage);
   initSettings();
   initMidiPanel();
