@@ -58,6 +58,14 @@ This writes `dist/index.html`. Copy that one file to any PC and open it in Chrom
 
 The two keep their saved shows apart. Use Export and Import to move a show between them.
 
+### Try it with the demo show
+
+`samples/demo-show.json` is a sample show: three pages and 20 cues of stage effects for an imaginary concert.
+
+1. Press **Import** and choose `samples/demo-show.json`. This replaces the current show, so export it first if you need it.
+2. Set the timecode source to **Gen**.
+3. Press play, or click the timecode display, type `00001900` and press Enter to jump to `00:00:19:00`, where three cues come close together.
+
 ## Using it
 
 ![Program mode: editing the cue list, with the MIDI and countdown settings on the right](screenshots/program-mode.jpg)

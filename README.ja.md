@@ -58,6 +58,14 @@ npm run build
 
 2 つは保存場所が別です。ショーを移す時は Export と Import を使います。
 
+### サンプルデータで試す
+
+`samples/demo-show.json` はサンプルのショーです。架空のコンサートの特効 Cue が、3 ページ・20 Cue 入っています。
+
+1. **Import** を押して `samples/demo-show.json` を選びます。今のショーは置き換わるので、必要なら先に Export してください。
+2. タイムコードの入力元を **Gen** にします。
+3. 再生ボタンを押します。または、タイムコード表示をクリックして `00001900` と打ち、Enter を押すと `00:00:19:00` に頭出しできます。Cue が 3 つ続けて来る場面です。
+
 ## 使い方
 
 ![Program モード: Cue List の編集と、右パネルの MIDI やカウントダウンの設定](screenshots/program-mode.jpg)
