@@ -1,0 +1,294 @@
+{
+  "app": "tc-cd",
+  "version": 1,
+  "frameRate": "30",
+  "pages": [
+    {
+      "id": "demo-page-1",
+      "name": "01 Opening",
+      "midi": {
+        "channel": 1,
+        "note": 60,
+        "velocity": 127
+      },
+      "offsetFrames": 0,
+      "tcIgnore": false,
+      "cues": [
+        {
+          "id": "demo-cue-1",
+          "number": "1",
+          "triggerFrame": 240,
+          "name": "Kabuki Drop",
+          "info": "SL and SR together",
+          "enabled": true,
+          "channel": null,
+          "note": 60,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-2",
+          "number": "2",
+          "triggerFrame": 645,
+          "name": "CO2 Jet",
+          "info": "Top of chorus, 4 shots",
+          "enabled": true,
+          "channel": null,
+          "note": 61,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-3",
+          "number": "3",
+          "triggerFrame": 720,
+          "name": "CO2 Jet",
+          "info": "Second hit, hold 2 sec",
+          "enabled": true,
+          "channel": null,
+          "note": 61,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-4",
+          "number": "4",
+          "triggerFrame": 795,
+          "name": "Sparkular",
+          "info": "Downstage x8, 5 sec",
+          "enabled": true,
+          "channel": null,
+          "note": 62,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-5",
+          "number": "5",
+          "triggerFrame": 1320,
+          "name": "Flame",
+          "info": "Guitar solo, center pair",
+          "enabled": true,
+          "channel": null,
+          "note": 63,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-6",
+          "number": "6",
+          "triggerFrame": 1860,
+          "name": "Streamers",
+          "info": "Cut for this venue",
+          "enabled": false,
+          "channel": null,
+          "note": 64,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-7",
+          "number": "7",
+          "triggerFrame": 2100,
+          "name": "Confetti",
+          "info": "Silver, after the breakdown",
+          "enabled": true,
+          "channel": null,
+          "note": 65,
+          "velocity": null,
+          "standbySec": 20
+        },
+        {
+          "id": "demo-cue-8",
+          "number": "8",
+          "triggerFrame": 2640,
+          "name": "Blackout",
+          "info": "End of outro",
+          "enabled": true,
+          "channel": null,
+          "note": 66,
+          "velocity": null,
+          "standbySec": null
+        }
+      ]
+    },
+    {
+      "id": "demo-page-2",
+      "name": "02 Midnight Run",
+      "midi": {
+        "channel": 1,
+        "note": 70,
+        "velocity": 127
+      },
+      "offsetFrames": 9000,
+      "tcIgnore": false,
+      "cues": [
+        {
+          "id": "demo-cue-9",
+          "number": "1",
+          "triggerFrame": 360,
+          "name": "Low Fog",
+          "info": "Start under the intro",
+          "enabled": true,
+          "channel": null,
+          "note": 70,
+          "velocity": null,
+          "standbySec": 20
+        },
+        {
+          "id": "demo-cue-10",
+          "number": "2",
+          "triggerFrame": 1420,
+          "name": "Laser Gate",
+          "info": "On the first downbeat",
+          "enabled": true,
+          "channel": null,
+          "note": 71,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-11",
+          "number": "3",
+          "triggerFrame": 2250,
+          "name": "Flame",
+          "info": "Chorus, outer pairs",
+          "enabled": true,
+          "channel": null,
+          "note": 72,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-12",
+          "number": "4",
+          "triggerFrame": 2310,
+          "name": "Flame",
+          "info": "Chorus, all",
+          "enabled": true,
+          "channel": null,
+          "note": 72,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-13",
+          "number": "5",
+          "triggerFrame": 4550,
+          "name": "CO2 Jet",
+          "info": "Bridge, 2 shots",
+          "enabled": true,
+          "channel": null,
+          "note": 73,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-14",
+          "number": "6",
+          "triggerFrame": 6600,
+          "name": "Fog Off",
+          "info": "Last chorus",
+          "enabled": true,
+          "channel": null,
+          "note": 74,
+          "velocity": null,
+          "standbySec": null
+        }
+      ]
+    },
+    {
+      "id": "demo-page-3",
+      "name": "03 Encore",
+      "midi": {
+        "channel": 1,
+        "note": 80,
+        "velocity": 127
+      },
+      "offsetFrames": 18000,
+      "tcIgnore": false,
+      "cues": [
+        {
+          "id": "demo-cue-15",
+          "number": "1",
+          "triggerFrame": 150,
+          "name": "House Lights Out",
+          "info": "After the MC",
+          "enabled": true,
+          "channel": null,
+          "note": 80,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-16",
+          "number": "2",
+          "triggerFrame": 1740,
+          "name": "Sparkular",
+          "info": "Key change, 8 sec",
+          "enabled": true,
+          "channel": null,
+          "note": 81,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-17",
+          "number": "3",
+          "triggerFrame": 3975,
+          "name": "Confetti",
+          "info": "Final chorus, gold",
+          "enabled": true,
+          "channel": null,
+          "note": 82,
+          "velocity": null,
+          "standbySec": 20
+        },
+        {
+          "id": "demo-cue-18",
+          "number": "4",
+          "triggerFrame": 4020,
+          "name": "Streamers",
+          "info": "Right after confetti",
+          "enabled": true,
+          "channel": null,
+          "note": 83,
+          "velocity": null,
+          "standbySec": null
+        },
+        {
+          "id": "demo-cue-19",
+          "number": "5",
+          "triggerFrame": 4950,
+          "name": "Pyro Finale",
+          "info": "Last hit, check clearance",
+          "enabled": true,
+          "channel": null,
+          "note": 84,
+          "velocity": null,
+          "standbySec": 30
+        },
+        {
+          "id": "demo-cue-20",
+          "number": "6",
+          "triggerFrame": null,
+          "name": "Curtain Call",
+          "info": "Manual, on the stage manager's call",
+          "enabled": true,
+          "channel": null,
+          "note": 85,
+          "velocity": null,
+          "standbySec": null
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "standbySec": 10,
+    "warnSec": 5,
+    "finalSec": 3,
+    "fireSkipped": false,
+    "autoScroll": true,
+    "noteLengthMs": 100
+  }
+}
