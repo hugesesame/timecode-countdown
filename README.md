@@ -1,4 +1,4 @@
-<!-- Draft. To add later: screenshot, license, public URL -->
+<!-- Draft. To add later: license -->
 
 # TC-CD (Timecode Countdown)
 
@@ -7,6 +7,10 @@ English | [日本語](README.ja.md)
 TC-CD is a web app that follows timecode, counts down to each cue, and shows the moment to press GO, so that gear with no timecode input can still be run by hand, on time.
 
 It runs in the browser on a PC, builds into a single HTML file, and works without an internet connection.
+
+**Open the app: https://hugesesame.github.io/timecode-countdown/** (Chrome or Edge on a PC)
+
+> **Beta.** TC-CD is still being tested and has not been used on a real show. MTC, LTC and MIDI output have been checked only with a few software sources. Test it with your own gear before relying on it.
 
 ![TC-CD in Show mode: the countdown, the lane and the cue list](screenshots/show-mode.png)
 
