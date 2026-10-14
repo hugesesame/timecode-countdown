@@ -134,7 +134,7 @@ export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
  * ポートの id はブラウザや開き方ごとに変わるので、名前で持つ。
  */
 export interface ShowIo {
-  source: 'int' | 'mtc' | 'ltc';
+  source: 'int' | 'mtc' | 'ltc' | 'clock';
   midiIn: string | null;
   noteOut: string | null;
   mtcOut: string | null;
@@ -160,7 +160,7 @@ export function parseShowIo(json: string): ShowIo | null {
   const io = data.io;
   const name = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
   return {
-    source: io.source === 'mtc' || io.source === 'ltc' ? io.source : 'int',
+    source: io.source === 'mtc' || io.source === 'ltc' || io.source === 'clock' ? io.source : 'int',
     midiIn: name(io.midiIn),
     noteOut: name(io.noteOut),
     mtcOut: name(io.mtcOut),

@@ -142,7 +142,10 @@ function updateStatus(now: number): void {
   const status = $('tc-status');
   let text = '';
   let level = '';
-  if (state.io.source !== 'int') {
+  if (state.io.source === 'clock') {
+    text = '● Local time';
+    level = 'is-ok';
+  } else if (state.io.source !== 'int') {
     const { extRate } = state;
     const alert = state.io.source === 'ltc' ? LTC_ALERTS[ltcStatus()] : undefined;
     if (alert) {

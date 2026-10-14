@@ -21,6 +21,7 @@ It runs in the browser on a PC. There is nothing to install, and once you have o
   - Gen: a built-in generator, for programming and rehearsal. It can be started and stopped with MIDI notes
   - MTC: MIDI Timecode from a MIDI input
   - LTC: timecode decoded from an audio input
+  - Clock: the time of day on the PC, for cues that run at a set time
 - **MIDI Note output** when a cue fires, with channel, note and velocity per cue.
 - **Click**: a click at 3, 2 and 1 seconds before a cue, and a higher tone at GO.
 - **Display window** for a second screen, showing only the next cue, the countdown and the lane.
@@ -80,7 +81,7 @@ The click needs one more step: the browser does not let a page make sound until 
 ![Program mode: editing the cue list, with the MIDI and countdown settings on the right](screenshots/program-mode.jpg)
 
 1. Add cues with **+ Add Cue** and type a trigger time. Typing `1000` gives `00:00:10:00`.
-2. Choose the timecode source at the top left: **Gen**, **MTC** or **LTC**.
+2. Choose the timecode source at the top left: **Gen**, **MTC**, **LTC** or **Clock**.
 3. For MTC or MIDI Note output, press **Enable** under MIDI and choose the ports.
 4. For LTC, allow microphone access and choose the audio input and channel. Nothing is recorded.
 5. Switch to **Show** mode for the show.
@@ -93,6 +94,17 @@ Each cue has two switches at the right of the list:
 - **MIDI** turns off only the MIDI Note. The countdown, the lane and the click stay the same, so you can count down to something you operate by hand on other gear. The GO button and the space bar do not send the Note either.
 
 If timecode jumps forward, the cues it jumped over do not fire. If it goes back, the cues after that position become active again.
+
+### Running cues at a time of day
+
+Choose **Clock** as the source to use the PC's clock as the timecode. At half past seven in the evening the timecode reads `19:30:00:00`, so a cue with that trigger time fires at 19:30.
+
+- Use it for things that are tied to the clock, such as doors, announcements and the curfew. For cues that follow the performance, timecode or the GO button is safer, because the start of a show often moves.
+- If everything on a page moves by the same amount, change the page's offset. An offset of `00:10:00:00` makes every cue on that page ten minutes later.
+- Cues whose time has already passed when you open the app do not fire.
+- The app is only as accurate as the PC's clock. Leave the PC set to adjust its time automatically.
+- The clock cannot be stopped, so play, stop and locate are turned off.
+- At midnight the time returns to `00:00:00`, and all cues become active again for the new day. A countdown does not run across midnight.
 
 ### Controlling Gen with MIDI notes
 

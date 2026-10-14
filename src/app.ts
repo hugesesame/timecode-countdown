@@ -21,6 +21,7 @@ import {
   type ShowIo,
 } from './core/show';
 import { convertFrameRate, parseTimecode, secondsToFrames, type FrameRate } from './core/timecode';
+import { timeOfDayFrames } from './core/wallclock';
 
 const STORAGE_KEY = 'tc-cd:show';
 const IO_KEY = 'tc-cd:io';
@@ -69,7 +70,8 @@ function loadShow(): Show {
   return sampleShow();
 }
 
-export type Source = 'int' | 'mtc' | 'ltc';
+/** int: 内蔵ジェネレーター / mtc, ltc: 外部のタイムコード / clock: この PC の時計の時刻 */
+export type Source = 'int' | 'mtc' | 'ltc' | 'clock';
 
 /** このマシンでの入出力の選択。ショーファイルには含めない。 */
 export type Mode = 'program' | 'show';
@@ -102,7 +104,7 @@ function loadIo(): IoPrefs {
   const prefs: IoPrefs = { source: 'int', mode: 'program', countdownStyle: 'whole', midiInId: null, midiOutId: null, mtcOutId: null, clickOn: false, clickVolume: 0.6, clickSinkId: null, ltcInId: null, ltcChannel: 0, genRemote: emptyRemote() };
   try {
     const saved = JSON.parse(localStorage.getItem(IO_KEY) ?? '{}') as Partial<IoPrefs>;
-    if (saved.source === 'mtc' || saved.source === 'ltc') prefs.source = saved.source;
+    if (saved.source === 'mtc' || saved.source === 'ltc' || saved.source === 'clock') prefs.source = saved.source;
     if (saved.mode === 'show') prefs.mode = 'show';
     if (saved.countdownStyle === 'tenths') prefs.countdownStyle = 'tenths';
     if (typeof saved.midiInId === 'string') prefs.midiInId = saved.midiInId;
@@ -171,11 +173,25 @@ const notifySelection = (): void => selectionListeners.forEach((fn) => fn());
 
 /** 選択中の入力元での現在のフレーム位置（小数を含む） */
 export function clockPosition(now: number): number {
+  if (state.io.source === 'clock') return wallPosition(now);
   return state.io.source === 'int' ? state.gen.position(now) : state.ext.position(now);
 }
 
 export function clockRunning(now: number): boolean {
+  if (state.io.source === 'clock') return true;
   return state.io.source === 'int' ? state.gen.running : state.ext.isRunning(now);
+}
+
+/** この PC の時計の時刻を、タイムコードの位置として読む。時計が合わせ直されたら、それに従う */
+function wallPosition(now: number): number {
+  const date = new Date(Date.now() - (performance.now() - now));
+  return timeOfDayFrames(
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+    date.getMilliseconds(),
+    state.show.frameRate,
+  );
 }
 
 export function activePage(): Page {
@@ -632,3 +648,6 @@ export function captureTime(): void {
   const below = page.cues[page.cues.indexOf(cue) + 1];
   if (below) selectCue(below.id);
 }
+
+// 入力元が時計の時は、開いた時点ですでに過ぎている Cue がある。それらを通過済みにしておく
+relocate(performance.now());
