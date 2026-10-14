@@ -1494,7 +1494,9 @@ body.is-display {
 }
 
 @media print {
+  /* 列が多いので横向きにする。紙の大きさは印刷画面の設定に従う */
   @page {
+    size: landscape;
     margin: 12mm;
   }
 

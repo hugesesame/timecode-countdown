@@ -8,6 +8,8 @@ import { $, el } from './dom';
  * ブラウザのメニューや ⌘P から印刷した時も、画面ではなくこのシートを出す。
  */
 
+const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 function cell(tag: 'th' | 'td', text: string, className = ''): HTMLElement {
   return el(tag, className, text);
 }
@@ -22,7 +24,7 @@ function render(): HTMLElement {
   const head = el('header', 'sheet__head');
   head.append(
     el('h1', 'sheet__title', 'TC-CD Cue Sheet'),
-    el('p', 'sheet__meta', `${FRAME_RATE_LABELS[state.show.frameRate]} fps · ${pages.length} pages · ${count} cues · Printed ${printed}`),
+    el('p', 'sheet__meta', `${FRAME_RATE_LABELS[state.show.frameRate]} fps · ${plural(pages.length, 'page')} · ${plural(count, 'cue')} · Printed ${printed}`),
   );
   sheet.append(head);
 
