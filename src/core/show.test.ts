@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
+  createCue,
   createPage,
   createShow,
   isEmptyShow,
@@ -19,6 +20,7 @@ const cue = (number: string): Cue => ({
   name: '',
   info: '',
   enabled: true,
+  midiOn: true,
   channel: null,
   note: null,
   velocity: null,
@@ -110,6 +112,7 @@ describe('serializeShow / parseShow', () => {
       name: '',
       info: '',
       enabled: true,
+      midiOn: true,
       channel: null,
       note: null,
       velocity: null,
@@ -234,5 +237,20 @@ describe('isEmptyShow', () => {
     const show = createShow('p1');
     show.pages.push(createPage('p2', 'Page 2'));
     expect(isEmptyShow(show)).toBe(true);
+  });
+});
+
+describe('Cue の MIDI の On / Off', () => {
+  test('新しい Cue は MIDI が On', () => {
+    expect(createCue('c1', '1').midiOn).toBe(true);
+  });
+
+  test('読み込みで Off を保ち、不正な値は On にする', () => {
+    const data = JSON.parse(serializeShow(createShow('p1')));
+    data.pages[0].cues = [
+      { id: 'c1', midiOn: false },
+      { id: 'c2', midiOn: 'no' },
+    ];
+    expect(parseShow(JSON.stringify(data)).pages[0]?.cues.map((c) => c.midiOn)).toEqual([false, true]);
   });
 });

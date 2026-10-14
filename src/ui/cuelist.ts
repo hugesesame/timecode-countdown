@@ -77,9 +77,11 @@ export function initCueList(): void {
   list.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const id = target.closest<HTMLElement>('.cue')?.dataset.id ?? null;
-    if (id && target.closest('.cue__toggle button')) {
+    const toggle = target.closest('button')?.closest<HTMLElement>('.cue__toggle');
+    if (id && toggle) {
       const cue = findCue(id);
-      if (cue) updateCue(id, { enabled: !cue.enabled });
+      if (cue && toggle.dataset.toggle === 'midiOn') updateCue(id, { midiOn: !cue.midiOn });
+      else if (cue) updateCue(id, { enabled: !cue.enabled });
       return;
     }
     if (!target.closest('input')) selectCue(id);
@@ -113,6 +115,7 @@ function render(): void {
     const row = el('div', 'cue row');
     row.dataset.id = cue.id;
     row.classList.toggle('is-off', !cue.enabled);
+    row.classList.toggle('is-midi-off', !cue.midiOn);
 
     const handle = el('span', 'cue__handle', '⋮⋮');
     handle.draggable = true;
@@ -139,13 +142,19 @@ function render(): void {
       cells[field].classList.toggle('is-default', cue[field] === null);
     }
 
+    const midiToggle = el('div', 'cue__toggle cue__toggle--midi prog-only');
+    midiToggle.dataset.toggle = 'midiOn';
+    const midiButton = el('button', '', cue.midiOn ? 'ON' : 'OFF');
+    midiButton.title = 'Send the MIDI Note when timecode fires this cue. GO and Space always send it';
+    midiToggle.append(midiButton);
+
     const toggle = el('div', 'cue__toggle');
     const button = el('button', '', cue.enabled ? 'ON' : 'OFF');
     button.title = 'Turn this cue on / off';
     toggle.append(button);
 
     const bar = el('div', 'cue__bar');
-    row.append(handle, ...FIELDS.map((field) => cells[field]), toggle, bar);
+    row.append(handle, ...FIELDS.map((field) => cells[field]), midiToggle, toggle, bar);
     rows.set(cue.id, { row, bar, cells });
     return row;
   });

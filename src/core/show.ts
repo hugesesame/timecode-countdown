@@ -8,6 +8,8 @@ export interface Cue {
   name: string;
   info: string;
   enabled: boolean;
+  /** false なら、タイムコードで実行された時に MIDI Note を送らない。手動の実行では送る */
+  midiOn: boolean;
   /** MIDI の設定。null ならページの初期値を使う */
   channel: number | null;
   note: number | null;
@@ -58,6 +60,7 @@ export function createCue(id: string, number: string): Cue {
     name: '',
     info: '',
     enabled: true,
+    midiOn: true,
     channel: null,
     note: null,
     velocity: null,
@@ -190,6 +193,7 @@ function parseCue(v: unknown, index: number): Cue {
     name: str(v.name),
     info: str(v.info),
     enabled: bool(v.enabled, true),
+    midiOn: bool(v.midiOn, true),
     channel: midiValue(v.channel, 'channel'),
     note: midiValue(v.note, 'note'),
     velocity: midiValue(v.velocity, 'velocity'),

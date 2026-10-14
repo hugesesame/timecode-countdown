@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { noteOff, noteOn, resolveMidi } from './midi';
+import { noteOff, noteOn, resolveMidi, sendsNote } from './midi';
 
 const page = { midi: { channel: 1, note: 60, velocity: 127 } };
 
@@ -36,5 +36,20 @@ describe('noteOn / noteOff', () => {
 
   test('Note Off は 0x80 台で Velocity 0', () => {
     expect(noteOff({ channel: 2, note: 60, velocity: 100 })).toEqual([0x81, 60, 0]);
+  });
+});
+
+describe('sendsNote', () => {
+  test('MIDI が On の Cue は、タイムコードでも手動でも Note を送る', () => {
+    expect(sendsNote({ midiOn: true }, false)).toBe(true);
+    expect(sendsNote({ midiOn: true }, true)).toBe(true);
+  });
+
+  test('MIDI が Off の Cue は、タイムコードで実行された時は Note を送らない', () => {
+    expect(sendsNote({ midiOn: false }, false)).toBe(false);
+  });
+
+  test('MIDI が Off の Cue でも、手動で実行した時は Note を送る', () => {
+    expect(sendsNote({ midiOn: false }, true)).toBe(true);
   });
 });

@@ -87,6 +87,11 @@ The click needs one more step: the browser does not let a page make sound until 
 
 A cue fires when timecode passes its trigger time. You can also fire by hand with the GO button or the space bar: it fires the selected cue, or the next cue if none is selected.
 
+Each cue has two switches at the right of the list:
+
+- **On / Off** turns the whole cue off. It does not fire and is left out of the countdown.
+- **MIDI** turns off only the MIDI Note that timecode sends. The countdown, the lane and the click stay the same, so you can count down to something you operate by hand on other gear. The GO button and the space bar still send the Note.
+
 If timecode jumps forward, the cues it jumped over do not fire. If it goes back, the cues after that position become active again.
 
 ### Countdown

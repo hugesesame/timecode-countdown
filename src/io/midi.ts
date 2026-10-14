@@ -1,7 +1,7 @@
 import { feedMtc, onFire, setIo, state } from '../app';
 import { arrivalTime } from '../core/clock';
 import { GapMeter } from '../core/gapmeter';
-import { noteOff, noteOn, resolveMidi } from '../core/midi';
+import { noteOff, noteOn, resolveMidi, sendsNote } from '../core/midi';
 import { MtcDecoder } from '../core/mtc';
 import { MtcOutScheduler } from '../core/mtcout';
 import type { ShowIo } from '../core/show';
@@ -148,7 +148,7 @@ export function initMidi(): void {
   onFire((e) => {
     const output = access?.outputs.get(state.io.midiOutId ?? '');
     const page = state.show.pages.find((p) => p.id === e.pageId);
-    if (!output || !page) return;
+    if (!output || !page || !sendsNote(e.cue, e.manual)) return;
     const target = resolveMidi(e.cue, page);
     output.send(noteOn(target));
     output.send(noteOff(target), performance.now() + state.show.settings.noteLengthMs);
