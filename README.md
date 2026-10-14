@@ -80,7 +80,7 @@ The click needs one more step: the browser does not let a page make sound until 
 
 ## Using it
 
-![Program mode: editing the cue list, with the MIDI and countdown settings on the right](screenshots/program-mode.jpg)
+![Program mode: editing the cue list, with the MIDI and countdown settings on the right](screenshots/program-mode.png)
 
 1. Add cues with **+ Add Cue** and type a trigger time. Typing `1000` gives `00:00:10:00`.
 2. Choose the timecode source at the top left: **Gen**, **MTC**, **LTC** or **Clock**.

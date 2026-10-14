@@ -80,7 +80,7 @@ PC のブラウザで動きます。インストールは不要で、一度開�
 
 ## 使い方
 
-![Program モード: Cue List の編集と、右パネルの MIDI やカウントダウンの設定](screenshots/program-mode.jpg)
+![Program モード: Cue List の編集と、右パネルの MIDI やカウントダウンの設定](screenshots/program-mode.png)
 
 1. **+ Add Cue** で Cue を足し、Trigger Time を入力します。`1000` と打つと `00:00:10:00` になります。
 2. 左上でタイムコードの入力元を選びます（**Gen** / **MTC** / **LTC** / **Clock**）。
