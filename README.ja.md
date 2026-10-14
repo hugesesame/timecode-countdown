@@ -1,5 +1,3 @@
-<!-- 下書き。後で足すもの: ライセンス -->
-
 # TC-CD (Timecode Countdown)
 
 [English](README.md) | 日本語
@@ -160,3 +158,7 @@ npm run dev
 | `src/app.ts` | アプリ全体の状態と操作 |
 
 TypeScript、Vite、Vitest で作っています。実行時に必要な外部ライブラリはありません。
+
+## ライセンス
+
+[MIT](LICENSE) です。仕事の現場を含め、自由に使用、改造、再配布ができます。動作の保証はありません。

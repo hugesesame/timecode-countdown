@@ -1,5 +1,3 @@
-<!-- Draft. To add later: license -->
-
 # TC-CD (Timecode Countdown)
 
 English | [日本語](README.ja.md)
@@ -160,3 +158,7 @@ Each one keeps its saved show apart from the others. Use Export and Import to mo
 | `src/app.ts` | App state and actions |
 
 Built with TypeScript, Vite and Vitest. There are no runtime dependencies.
+
+## License
+
+[MIT](LICENSE). You are free to use, change and share TC-CD, including at work. It comes with no warranty.
