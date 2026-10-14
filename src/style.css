@@ -1486,3 +1486,124 @@ body.is-display {
     opacity: 0;
   }
 }
+
+/* ---------- 印刷する Cue シート ---------- */
+
+.sheet {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    min-width: 0;
+    height: auto;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+  }
+
+  #app,
+  .toast {
+    display: none !important;
+  }
+
+  .sheet {
+    display: block;
+    color: #000;
+    font: 10pt/1.35 var(--sans);
+  }
+
+  .sheet__head {
+    margin-bottom: 6mm;
+  }
+
+  .sheet__title {
+    margin: 0;
+    font-size: 16pt;
+  }
+
+  .sheet__meta {
+    margin: 1mm 0 0;
+    color: #444;
+    font-size: 9pt;
+  }
+
+  .sheet__page {
+    margin-bottom: 7mm;
+  }
+
+  .sheet__page-title {
+    display: flex;
+    align-items: baseline;
+    gap: 4mm;
+    margin: 0 0 2mm;
+    font-size: 12pt;
+    break-after: avoid;
+  }
+
+  .sheet__page-notes {
+    color: #444;
+    font-size: 9pt;
+    font-weight: 400;
+  }
+
+  .sheet__empty {
+    margin: 0;
+    color: #666;
+  }
+
+  .sheet__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .sheet__table th,
+  .sheet__table td {
+    padding: 1.4mm 2mm;
+    border: 0.3mm solid #999;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .sheet__table th {
+    background: #eee;
+    font-size: 8.5pt;
+    white-space: nowrap;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .sheet__table tr {
+    break-inside: avoid;
+  }
+
+  .sheet__mono {
+    font-family: var(--mono);
+    font-size: 9pt;
+    white-space: nowrap;
+  }
+
+  .sheet__cue,
+  .sheet__name {
+    font-weight: 700;
+  }
+
+  .sheet__num {
+    text-align: right;
+  }
+
+  .sheet__check {
+    width: 8mm;
+    text-align: center;
+  }
+
+  .sheet__table tr.is-off td {
+    color: #888;
+    text-decoration: line-through;
+  }
+}

@@ -27,6 +27,7 @@ It runs in the browser on a PC. There is nothing to install, and once you have o
 - **Display window** for a second screen, showing only the next cue, the countdown and the lane.
 - **Program / Show modes**. Show mode enlarges the display and locks editing.
 - **Show files**: the show is saved in the browser as you work, and can be exported to and imported from a JSON file.
+- **Cue sheet**: print all pages as a table, or save it as a PDF, to keep a paper copy at the show.
 
 Frame rates: 24, 25, 29.97 drop-frame and 30 fps.
 
@@ -60,6 +61,7 @@ The click needs one more step: the browser does not let a page make sound until 
 - It is not sent anywhere. A different PC, or a different browser on the same PC, does not have it.
 - Clearing the browser's site data removes it.
 - Press **Export** to save the show as a file. Do this to keep a backup, and to move the show to another PC with **Import**.
+- Press **Print** to print the cue sheet of all pages, or to save it as a PDF from the print dialog. It is a good backup in case the PC stops during a show.
 
 ### Without an internet connection
 
