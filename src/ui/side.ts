@@ -443,6 +443,10 @@ function renderMidi(): void {
     if (page) $<HTMLInputElement>(id).value = String(page.midi[key]);
   }
 
+  // Learn が押せない時は、先に何をすれば良いかを見出しに出す
+  const todo = !ready ? ' — press Enable first' : !state.io.midiInId ? ' — choose MIDI In first' : '';
+  setText($('gen-remote-title'), `Gen remote${todo}`);
+
   const waiting = remoteLearning();
   for (const action of REMOTE_ACTIONS) {
     const els = remoteEls.get(action);
