@@ -59,6 +59,7 @@ import {
   selectOutput,
   type PortInfo,
 } from '../io/midi';
+import { initOffline } from '../io/offline';
 import { $, el, replay, setAttr, setText, toast } from './dom';
 import { version } from '../../package.json';
 
@@ -71,6 +72,9 @@ const pageEls = new Map<string, PageEls>();
 
 export function initSide(): void {
   $('app-version').textContent = `TC-CD ${version} beta`;
+  initOffline(() => {
+    $('app-version').textContent = `TC-CD ${version} beta · Offline ready`;
+  });
   $('page-add').addEventListener('click', addPage);
   initSettings();
   initMidiPanel();
