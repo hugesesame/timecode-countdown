@@ -1,9 +1,10 @@
-import { feedMtc, onFire, setIo, state } from '../app';
+import { feedMtc, onFire, remoteControl, setIo, state } from '../app';
 import { arrivalTime } from '../core/clock';
 import { GapMeter } from '../core/gapmeter';
 import { noteOff, noteOn, resolveMidi, sendsNote } from '../core/midi';
 import { MtcDecoder } from '../core/mtc';
 import { MtcOutScheduler } from '../core/mtcout';
+import { assignRemote, noteOnKey, remoteAction, type RemoteAction } from '../core/remote';
 import type { ShowIo } from '../core/show';
 import { applyLtcShowIo, ltcInputName } from './ltc';
 
@@ -39,6 +40,35 @@ export const midiInputs = (): PortInfo[] => list(access?.inputs.values());
 export const midiOutputs = (): PortInfo[] => list(access?.outputs.values());
 
 /** 選択中の入力ポートから MTC を受け取るようにつなぎ直す */
+/** 次に届いた Note を割り当てる操作。待っていなければ null */
+let learning: RemoteAction | null = null;
+
+export const remoteLearning = (): RemoteAction | null => learning;
+
+/** 次に届く Note を、その操作に割り当てる。null で待つのをやめる */
+export function learnRemote(action: RemoteAction | null): void {
+  learning = action;
+  notify();
+}
+
+export function clearRemote(action: RemoteAction): void {
+  setIo({ genRemote: assignRemote(state.io.genRemote, action, null) });
+  notify();
+}
+
+function handleNote(data: Uint8Array): void {
+  const key = noteOnKey(data);
+  if (!key) return;
+  if (learning) {
+    setIo({ genRemote: assignRemote(state.io.genRemote, learning, key) });
+    learning = null;
+    notify();
+    return;
+  }
+  const action = remoteAction(state.io.genRemote, key);
+  if (action) remoteControl(action);
+}
+
 function bindInput(): void {
   const next = access?.inputs.get(state.io.midiInId ?? '') ?? null;
   if (next === boundInput) return;
@@ -58,6 +88,7 @@ function bindInput(): void {
     else if (e.data[0] === 0xf0) rxGaps.pause();
     const event = decoder.feed(e.data);
     if (event) feedMtc(event, at);
+    else handleNote(e.data);
   };
 }
 

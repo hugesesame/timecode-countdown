@@ -1126,6 +1126,30 @@ body:not(.is-show) .page__offset {
   margin-left: 0;
 }
 
+/* Gen を操作する Note の割り当て */
+.remote__title {
+  height: 24px;
+  margin-top: 4px;
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.remote__row {
+  gap: 6px;
+  padding-left: 10px;
+}
+
+.remote__value {
+  flex: 1;
+  color: var(--text);
+  font: 12px var(--mono);
+  text-align: right;
+}
+
+.remote__value.is-empty {
+  color: var(--dim);
+}
+
 .side__diag {
   margin-top: 6px;
   color: var(--dim);

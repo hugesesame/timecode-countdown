@@ -18,7 +18,7 @@ It runs in the browser on a PC. There is nothing to install, and once you have o
 - **Lane**: a bar under the countdown where cue markers travel toward the GO line at a steady speed, so you can see cues that follow closely.
 - **Cue List** with pages. Each cue has a number, trigger time, name and info. Pages keep running while they are in the background.
 - **Timecode sources**
-  - Gen: a built-in generator, for programming and rehearsal
+  - Gen: a built-in generator, for programming and rehearsal. It can be started and stopped with MIDI notes
   - MTC: MIDI Timecode from a MIDI input
   - LTC: timecode decoded from an audio input
 - **MIDI Note output** when a cue fires, with channel, note and velocity per cue.
@@ -93,6 +93,16 @@ Each cue has two switches at the right of the list:
 - **MIDI** turns off only the MIDI Note. The countdown, the lane and the click stay the same, so you can count down to something you operate by hand on other gear. The GO button and the space bar do not send the Note either.
 
 If timecode jumps forward, the cues it jumped over do not fire. If it goes back, the cues after that position become active again.
+
+### Controlling Gen with MIDI notes
+
+You can start and stop Gen from a MIDI keyboard, a pad or a foot switch.
+
+1. Press **Enable** under MIDI and choose the device under **MIDI In**.
+2. Under **Gen remote**, press **Learn** next to Play, then play the note you want to use. Do the same for Stop and Rewind.
+3. Press **×** to remove a note.
+
+Play starts from the current position, Stop stops there, and Rewind returns to `00:00:00:00`. The notes work only while the source is Gen. They are saved in the browser on that PC, not in the show file.
 
 ### Countdown
 

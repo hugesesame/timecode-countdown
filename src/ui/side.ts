@@ -51,7 +51,10 @@ import {
   midiInputs,
   midiOutputs,
   midiStatus,
+  clearRemote,
+  learnRemote,
   mtcDiagnostics,
+  remoteLearning,
   onMidiChange,
   resetMtcDiagnostics,
   selectInput,
@@ -60,6 +63,7 @@ import {
   type PortInfo,
 } from '../io/midi';
 import { initOffline } from '../io/offline';
+import { REMOTE_ACTIONS, type RemoteAction } from '../core/remote';
 import { $, el, replay, setAttr, setText, toast } from './dom';
 import { version } from '../../package.json';
 
@@ -438,6 +442,49 @@ function renderMidi(): void {
   for (const [id, key] of MIDI_INPUTS) {
     if (page) $<HTMLInputElement>(id).value = String(page.midi[key]);
   }
+
+  const waiting = remoteLearning();
+  for (const action of REMOTE_ACTIONS) {
+    const els = remoteEls.get(action);
+    if (!els) continue;
+    const key = state.io.genRemote[action];
+    setText(els.value, key ? `Ch ${key.channel} · Note ${key.note}` : '—');
+    els.value.classList.toggle('is-empty', key === null);
+    setText(els.learn, waiting === action ? 'Play a note…' : 'Learn');
+    els.learn.classList.toggle('is-on', waiting === action);
+    // 受ける入力ポートが決まっていないと、Note は届かない
+    els.learn.disabled = !ready || !state.io.midiInId;
+    els.clear.hidden = key === null;
+  }
+}
+
+const REMOTE_LABELS: Record<RemoteAction, string> = {
+  play: 'Play',
+  stop: 'Stop',
+  rewind: 'Rewind',
+};
+
+interface RemoteEls {
+  value: HTMLElement;
+  learn: HTMLButtonElement;
+  clear: HTMLButtonElement;
+}
+
+const remoteEls = new Map<RemoteAction, RemoteEls>();
+
+function initRemote(): void {
+  for (const action of REMOTE_ACTIONS) {
+    const row = el('div', 'field remote__row');
+    const value = el('span', 'remote__value');
+    const learn = el('button', 'btn btn--tiny btn--toggle', 'Learn');
+    learn.addEventListener('click', () => learnRemote(remoteLearning() === action ? null : action));
+    const clear = el('button', 'btn btn--tiny', '×');
+    clear.title = 'Remove this note';
+    clear.addEventListener('click', () => clearRemote(action));
+    row.append(el('span', '', REMOTE_LABELS[action]), value, learn, clear);
+    $('gen-remote').append(row);
+    remoteEls.set(action, { value, learn, clear });
+  }
 }
 
 /** MTC の送受信が途切れた記録を表示する。長時間動かした時に、どちら側で起きたかを見分けるため。 */
@@ -474,6 +521,7 @@ function initMidiPanel(): void {
   });
   setInterval(renderDiagnostics, 1000);
   $('midi-enable').addEventListener('click', () => void enableMidi());
+  initRemote();
   const input = $<HTMLSelectElement>('midi-in');
   const output = $<HTMLSelectElement>('midi-out');
   input.addEventListener('change', () => {

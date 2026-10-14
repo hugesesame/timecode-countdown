@@ -113,8 +113,8 @@
               <span class="lbl">MIDI</span>
               <button id="midi-enable" class="btn btn--tiny" title="Ask the browser for permission to use MIDI">Enable</button>
             </div>
-            <label class="field" title="Input port that receives MTC">
-              MTC In
+            <label class="field" title="Input port that receives MTC, and the notes that control Gen">
+              MIDI In
               <select id="midi-in" class="select"></select>
             </label>
             <label class="field" title="Output port that sends a MIDI Note when a cue fires">
@@ -130,6 +130,9 @@
               <input id="midi-ch" type="number" min="1" max="16" title="Channel" />
               <input id="midi-note" type="number" min="0" max="127" title="Note" />
               <input id="midi-vel" type="number" min="1" max="127" title="Velocity" />
+            </div>
+            <div id="gen-remote" title="Control Gen with MIDI notes from the MIDI In port. Press Learn, then play the note">
+              <div class="field remote__title">Gen remote</div>
             </div>
             <div id="midi-diag" class="side__diag" title="MTC health since the last reset. Click to reset" hidden></div>
             <div id="midi-message" class="side__message" hidden></div>

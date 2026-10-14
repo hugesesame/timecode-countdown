@@ -3,6 +3,7 @@ import { ExternalClock } from './core/clock';
 import { advance, locate, withOffset, type EngineCue } from './core/engine';
 import { Generator } from './core/generator';
 import type { MtcEvent } from './core/mtc';
+import { emptyRemote, parseRemote, type RemoteAction, type RemoteMap } from './core/remote';
 import {
   createCue,
   createPage,
@@ -93,10 +94,12 @@ export interface IoPrefs {
   ltcInId: string | null;
   /** LTC が入っているチャンネル（0 から数える） */
   ltcChannel: number;
+  /** 内蔵ジェネレーターを外部の MIDI Note で操作するための割り当て */
+  genRemote: RemoteMap;
 }
 
 function loadIo(): IoPrefs {
-  const prefs: IoPrefs = { source: 'int', mode: 'program', countdownStyle: 'whole', midiInId: null, midiOutId: null, mtcOutId: null, clickOn: false, clickVolume: 0.6, clickSinkId: null, ltcInId: null, ltcChannel: 0 };
+  const prefs: IoPrefs = { source: 'int', mode: 'program', countdownStyle: 'whole', midiInId: null, midiOutId: null, mtcOutId: null, clickOn: false, clickVolume: 0.6, clickSinkId: null, ltcInId: null, ltcChannel: 0, genRemote: emptyRemote() };
   try {
     const saved = JSON.parse(localStorage.getItem(IO_KEY) ?? '{}') as Partial<IoPrefs>;
     if (saved.source === 'mtc' || saved.source === 'ltc') prefs.source = saved.source;
@@ -110,6 +113,7 @@ function loadIo(): IoPrefs {
     if (typeof saved.clickSinkId === 'string') prefs.clickSinkId = saved.clickSinkId;
     if (typeof saved.ltcInId === 'string') prefs.ltcInId = saved.ltcInId;
     if (typeof saved.ltcChannel === 'number' && Number.isInteger(saved.ltcChannel) && saved.ltcChannel >= 0) prefs.ltcChannel = saved.ltcChannel;
+    prefs.genRemote = parseRemote(saved.genRemote);
   } catch {
     // 読めない時は初期値のまま
   }
@@ -341,6 +345,15 @@ export function togglePlay(): void {
   const now = performance.now();
   if (state.gen.running) state.gen.stop(now);
   else state.gen.play(now);
+}
+
+/** 外部の MIDI Note による操作。再生中の Play と停止中の Stop は何もしない */
+export function remoteControl(action: RemoteAction): void {
+  if (state.io.source !== 'int') return;
+  const now = performance.now();
+  if (action === 'play') state.gen.play(now);
+  else if (action === 'stop' && state.gen.running) state.gen.stop(now);
+  else if (action === 'rewind') locateTo(0);
 }
 
 /** 選択中（なければ次）の Cue の手前に頭出しして再生する */
