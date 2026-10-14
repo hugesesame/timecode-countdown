@@ -612,12 +612,21 @@ select {
 
 .row {
   display: grid;
-  grid-template-columns: 28px 76px 160px minmax(120px, 1.1fr) minmax(120px, 2fr) 56px 52px 60px 52px 64px 84px;
+  grid-template-columns: 28px 76px 160px minmax(120px, 1.1fr) minmax(120px, 2fr) 56px 64px 52px 60px 52px 84px;
   align-items: center;
 }
 
 .row__center {
   text-align: center;
+}
+
+/* 列のまとまりの境目（MIDI の設定の左右）に縦線を入れる */
+.row__sep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  border-left: 1px solid var(--line);
 }
 
 .cues__head {
@@ -769,14 +778,16 @@ select {
   color: var(--muted);
 }
 
-.cue__midi {
+.cue__midi,
+.cue__stby {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-size: 13px;
 }
 
 /* ページの初期値をそのまま使っている項目 */
-.cue__midi.is-default {
+.cue__midi.is-default,
+.cue__stby.is-default {
   color: var(--dim);
 }
 
@@ -820,7 +831,7 @@ select {
   color: var(--dim);
 }
 
-/* タイムコードでは送らない Note は、薄く表示する */
+/* 送らない Note の設定は、薄く表示する */
 .cue.is-midi-off .cue__midi {
   color: var(--dim);
 }

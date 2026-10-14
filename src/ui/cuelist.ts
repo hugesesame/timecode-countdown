@@ -36,7 +36,7 @@ const CELL_CLASS: Record<Field, string> = {
   triggerFrame: 'cue__time',
   name: 'cue__name',
   info: 'cue__info',
-  standbySec: 'cue__midi',
+  standbySec: 'cue__stby',
   channel: 'cue__midi',
   note: 'cue__midi',
   velocity: 'cue__midi',
@@ -94,6 +94,12 @@ export function initCueList(): void {
     if (id && field && !cell?.querySelector('input')) startEdit(id, field);
   });
 
+  // 見出しの列を行に揃える。スクロールバーの幅は OS の設定で変わる
+  const head = list.previousElementSibling as HTMLElement;
+  new ResizeObserver(() => {
+    head.style.paddingRight = `${list.offsetWidth - list.clientWidth}px`;
+  }).observe(list);
+
   initDrag(list);
   onChange(render);
   onSelection(applySelection);
@@ -142,19 +148,21 @@ function render(): void {
       cells[field].classList.toggle('is-default', cue[field] === null);
     }
 
-    const midiToggle = el('div', 'cue__toggle cue__toggle--midi prog-only');
+    const midiToggle = el('div', 'cue__toggle cue__toggle--midi row__sep prog-only');
     midiToggle.dataset.toggle = 'midiOn';
     const midiButton = el('button', '', cue.midiOn ? 'ON' : 'OFF');
     midiButton.title = 'Send the MIDI Note when this cue fires';
     midiToggle.append(midiButton);
 
-    const toggle = el('div', 'cue__toggle');
+    const toggle = el('div', 'cue__toggle row__sep');
     const button = el('button', '', cue.enabled ? 'ON' : 'OFF');
     button.title = 'Turn this cue on / off';
     toggle.append(button);
 
     const bar = el('div', 'cue__bar');
-    row.append(handle, ...FIELDS.map((field) => cells[field]), midiToggle, toggle, bar);
+    // MIDI のスイッチは、その設定（Ch / Note / Vel）の左に置く
+    const [plain, midi] = [FIELDS.filter((f) => !isMidiField(f)), MIDI_FIELDS];
+    row.append(handle, ...plain.map((f) => cells[f]), midiToggle, ...midi.map((f) => cells[f]), toggle, bar);
     rows.set(cue.id, { row, bar, cells });
     return row;
   });
