@@ -6,7 +6,7 @@ English | [日本語](README.ja.md)
 
 TC-CD is a web app that follows timecode, counts down to each cue, and shows the moment to press GO, so that gear with no timecode input can still be run by hand, on time.
 
-It runs in the browser on a PC, builds into a single HTML file, and works without an internet connection.
+It runs in the browser on a PC. There is nothing to install, and once you have opened it, it works without an internet connection.
 
 **Open the app: https://hugesesame.github.io/timecode-countdown/** (Chrome or Edge on a PC)
 
@@ -35,38 +35,45 @@ Frame rates: 24, 25, 29.97 drop-frame and 30 fps.
 
 - A PC with **Chrome or Edge**. The app uses the Web MIDI API, and choosing the audio output for the click also needs these browsers.
 - The layout is made for PC screens. Phones and tablets are not supported.
-- Node.js, only if you build the app yourself.
 
 ## Getting started
 
-```
-npm install
-npm run dev
-```
+1. On a PC, open **https://hugesesame.github.io/timecode-countdown/** in Chrome or Edge.
+2. That is all. There is nothing to install and no account to make.
 
-Open the address that appears in the terminal (normally http://localhost:5173/).
+Add a bookmark so you can open it again later.
 
-To make the single-file version:
+### What the browser asks you
 
-```
-npm run build
-```
+The browser asks for permission the first time you use some features. Choose **Allow** each time. If you choose Block by mistake, click the icon at the left of the address bar and change the setting there.
 
-This writes `dist/index.html`. Copy that one file to any PC and open it in Chrome or Edge. No server or network is needed.
-
-| | Dev server (localhost) | `dist/index.html` opened directly |
+| When | What the browser asks | Why |
 |---|---|---|
-| Server | Needed | Not needed |
-| Choosing audio devices (LTC input, click output) | Yes | System default only |
-| Saved show | Kept per address | Kept separately from localhost |
+| You press **Enable** under MIDI | To control MIDI devices | To receive MTC and send MIDI Notes |
+| You choose **LTC** as the source | To use the microphone | To read timecode from the audio input. Nothing is recorded |
+| You press **Display** | To allow pop-ups (only if the window was blocked) | To open the display window |
 
-The two keep their saved shows apart. Use Export and Import to move a show between them.
+The click needs one more step: the browser does not let a page make sound until you have clicked somewhere on it. If the Click button shows **⚠ Click**, click the button or anywhere on the page.
+
+### Where your show is kept
+
+- Your show is saved as you work, in the browser on that PC. There is no Save button.
+- It is not sent anywhere. A different PC, or a different browser on the same PC, does not have it.
+- Clearing the browser's site data removes it.
+- Press **Export** to save the show as a file. Do this to keep a backup, and to move the show to another PC with **Import**.
+
+### Without an internet connection
+
+- Once the app is open, it keeps working if the connection drops. Timecode, MIDI, the click and the display window do not use the internet.
+- The app also keeps a copy of itself in the browser. When the bottom of the side panel shows **Offline ready** (in Program mode), you can reload or reopen the page on that PC without a connection.
+- So open the app once where you have a connection, and check for **Offline ready**, before you take the PC to a place without one.
+- When there is a connection, the app loads the newest version each time you open it.
 
 ### Try it with the demo show
 
-`samples/demo-show.json` is a sample show: three pages and 20 cues of stage effects for an imaginary concert.
+[`samples/demo-show.json`](samples/demo-show.json) is a sample show: three pages and 20 cues of stage effects for an imaginary concert. Open that link and press the download button at the top right of the file to save it to your PC.
 
-1. Press **Import** and choose `samples/demo-show.json`. This replaces the current show, so export it first if you need it.
+1. Press **Import** and choose the `demo-show.json` you saved. This replaces the current show, so export it first if you need it.
 2. Set the timecode source to **Gen**.
 3. Press play, or click the timecode display, type `00001900` and press Enter to jump to `00:00:19:00`, where three cues come close together.
 
@@ -117,11 +124,33 @@ Press **Display** in the toolbar to open a second window, then move it to the se
 
 ## Development
 
+This part is for people who want to change the app or build it themselves. You do not need it to use the app. It needs Node.js.
+
+```
+npm install
+npm run dev
+```
+
+Open the address that appears in the terminal (normally http://localhost:5173/).
+
 | Command | What it does |
 |---|---|
 | `npm run dev` | Start the dev server |
 | `npm test` | Run the tests |
 | `npm run build` | Type-check and build `dist/index.html` |
+
+`npm run build` puts the whole app into one file, `dist/index.html`. You can copy that file to any PC and open it in Chrome or Edge without a server.
+
+The three ways to open the app behave a little differently:
+
+| | Public site | Dev server (localhost) | `dist/index.html` opened directly |
+|---|---|---|---|
+| What you need | A browser | Node.js | A browser and the file |
+| Internet | Needed the first time | Not needed | Not needed |
+| Choosing audio devices (LTC input, click output) | Yes | Yes | System default only |
+| Saved show | Kept for the site | Kept for localhost | Kept apart from both |
+
+Each one keeps its saved show apart from the others. Use Export and Import to move a show between them.
 
 | Path | Contents |
 |---|---|
