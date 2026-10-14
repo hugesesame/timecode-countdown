@@ -148,7 +148,7 @@ export function initMidi(): void {
   onFire((e) => {
     const output = access?.outputs.get(state.io.midiOutId ?? '');
     const page = state.show.pages.find((p) => p.id === e.pageId);
-    if (!output || !page || !sendsNote(e.cue, e.manual)) return;
+    if (!output || !page || !sendsNote(e.cue)) return;
     const target = resolveMidi(e.cue, page);
     output.send(noteOn(target));
     output.send(noteOff(target), performance.now() + state.show.settings.noteLengthMs);

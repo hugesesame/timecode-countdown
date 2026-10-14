@@ -8,7 +8,7 @@ export interface Cue {
   name: string;
   info: string;
   enabled: boolean;
-  /** false なら、タイムコードで実行された時に MIDI Note を送らない。手動の実行では送る */
+  /** false なら、この Cue では MIDI Note を送らない */
   midiOn: boolean;
   /** MIDI の設定。null ならページの初期値を使う */
   channel: number | null;

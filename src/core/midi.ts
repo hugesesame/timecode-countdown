@@ -12,9 +12,9 @@ export function resolveMidi(
   };
 }
 
-/** MIDI を Off にした Cue は、タイムコードで実行された時だけ Note を送らない */
-export function sendsNote(cue: Pick<Cue, 'midiOn'>, manual: boolean): boolean {
-  return manual || cue.midiOn;
+/** MIDI を Off にした Cue は、タイムコードでも手動でも Note を送らない */
+export function sendsNote(cue: Pick<Cue, 'midiOn'>): boolean {
+  return cue.midiOn;
 }
 
 export function noteOn(t: MidiTarget): number[] {

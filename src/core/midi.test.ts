@@ -40,16 +40,11 @@ describe('noteOn / noteOff', () => {
 });
 
 describe('sendsNote', () => {
-  test('MIDI が On の Cue は、タイムコードでも手動でも Note を送る', () => {
-    expect(sendsNote({ midiOn: true }, false)).toBe(true);
-    expect(sendsNote({ midiOn: true }, true)).toBe(true);
+  test('MIDI が On の Cue は Note を送る', () => {
+    expect(sendsNote({ midiOn: true })).toBe(true);
   });
 
-  test('MIDI が Off の Cue は、タイムコードで実行された時は Note を送らない', () => {
-    expect(sendsNote({ midiOn: false }, false)).toBe(false);
-  });
-
-  test('MIDI が Off の Cue でも、手動で実行した時は Note を送る', () => {
-    expect(sendsNote({ midiOn: false }, true)).toBe(true);
+  test('MIDI が Off の Cue は Note を送らない', () => {
+    expect(sendsNote({ midiOn: false })).toBe(false);
   });
 });

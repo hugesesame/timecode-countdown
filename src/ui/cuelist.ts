@@ -145,7 +145,7 @@ function render(): void {
     const midiToggle = el('div', 'cue__toggle cue__toggle--midi prog-only');
     midiToggle.dataset.toggle = 'midiOn';
     const midiButton = el('button', '', cue.midiOn ? 'ON' : 'OFF');
-    midiButton.title = 'Send the MIDI Note when timecode fires this cue. GO and Space always send it';
+    midiButton.title = 'Send the MIDI Note when this cue fires';
     midiToggle.append(midiButton);
 
     const toggle = el('div', 'cue__toggle');
