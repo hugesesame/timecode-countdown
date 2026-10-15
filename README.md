@@ -2,7 +2,10 @@
 
 English | [日本語](README.ja.md)
 
-TC-CD is a web app that follows timecode, counts down to each cue, and shows the moment to press GO, so that gear with no timecode input can still be run by hand, on time.
+TC-CD is a web app that follows timecode and counts down to each cue.
+
+- **Countdown timer** (main use): shows when to trigger gear that cannot receive timecode, so you can run it by hand on time.
+- **Simple show controller** (extra): sends a MIDI Note as each cue fires. MIDI Notes are the only output.
 
 It runs in the browser on a PC. There is nothing to install, and once you have opened it, it works without an internet connection.
 
