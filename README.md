@@ -17,7 +17,7 @@ It runs in the browser on a PC. There is nothing to install, and once you have o
 
 ## What it does
 
-- **Countdown** to the next cue. The color changes from yellow to orange to red as GO approaches, and flashes green at GO.
+- **Countdown** to the next cue. The color changes from yellow to orange to red as GO approaches, and flashes green at GO. The frame also lights up 3, 2 and 1 seconds before each cue, at the same moments as the click, whether or not the click is on.
 - **Lane**: a bar under the countdown where cue markers travel toward the GO line at a steady speed, so you can see cues that follow closely.
 - **Cue List** with pages. Each cue has a number, trigger time, name and info. Pages keep running while they are in the background.
 - **Timecode sources**

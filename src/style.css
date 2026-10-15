@@ -348,6 +348,7 @@ select {
 .cd {
   --c: var(--text);
   --cd-bg: var(--bg-2);
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -392,6 +393,30 @@ select {
   }
   100% {
     background: var(--cd-bg);
+  }
+}
+
+/* 表示ウィンドウと同じタイミングで枠を光らせる。操作する画面なので、表示ウィンドウより控えめにする */
+.cd__beat {
+  position: absolute;
+  inset: -1px;
+  border: 2px solid var(--c);
+  border-radius: 12px;
+  box-shadow: inset 0 0 24px color-mix(in srgb, var(--c) 30%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cd__beat.is-on {
+  animation: cd-beat 0.45s ease-out;
+}
+
+@keyframes cd-beat {
+  0% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
   }
 }
 

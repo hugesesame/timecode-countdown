@@ -6,6 +6,7 @@ import {
   isShowMode,
   locateTo,
   manualGo,
+  nextOf,
   onChange,
   onFire,
   onReplace,
@@ -17,13 +18,15 @@ import {
   togglePlay,
   toggleTcIgnore,
 } from '../app';
-import { FRAME_RATES, FRAME_RATE_LABELS, formatTimecode, parseTimecode, type FrameRate } from '../core/timecode';
+import { BeatWatcher } from '../core/countdown';
+import { FRAME_RATES, FRAME_RATE_LABELS, formatTimecode, framesToSeconds, parseTimecode, type FrameRate } from '../core/timecode';
 import { ltcStatus } from '../io/ltc';
 import { enableMidi } from '../io/midi';
 import { createCountdownView, type CountdownView } from './countdown';
-import { $, el, setText } from './dom';
+import { $, el, replay, setText } from './dom';
 
 let countdown: CountdownView;
+const beats = new BeatWatcher();
 
 /** ページごとの、最後に実行した Cue */
 const lastFired = new Map<string, { cueId: string; manual: boolean }>();
@@ -187,4 +190,8 @@ export function updateHeader(now: number, pos: number): void {
   setText($('cd-last'), last && lastCue ? cueLabel(lastCue.number, lastCue.name) + (last.manual ? '  (manual)' : '') : '—');
 
   countdown.update(pos);
+  // 表示ウィンドウと同じ 3、2、1 秒前に、枠を光らせる
+  const next = nextOf(page, pos);
+  const remaining = next ? framesToSeconds(next.at - pos, state.show.frameRate) : 0;
+  if (beats.step(next?.cue.id ?? null, remaining) !== null) replay($('cd-beat'), 'is-on');
 }
