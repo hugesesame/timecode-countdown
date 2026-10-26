@@ -600,8 +600,13 @@ function initClickPanel(): void {
     select.blur();
   });
   const volume = $<HTMLInputElement>('click-volume');
+  const paintVolume = () => volume.style.setProperty('--fill', `${volume.value}%`);
   volume.value = String(Math.round(state.io.clickVolume * 100));
-  volume.addEventListener('input', () => setClickVolume(Number(volume.value) / 100));
+  paintVolume();
+  volume.addEventListener('input', () => {
+    setClickVolume(Number(volume.value) / 100);
+    paintVolume();
+  });
   volume.addEventListener('change', () => {
     testClick();
     volume.blur();
