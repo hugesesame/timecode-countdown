@@ -18,6 +18,7 @@ import { initDisplay } from './ui/display';
 import { initPrint } from './ui/print';
 import { initHeader, updateHeader } from './ui/header';
 import { $ } from './ui/dom';
+import { initPhoneNotice } from './ui/phone';
 import { initSide, updateSide } from './ui/side';
 
 initHeader();
@@ -28,6 +29,7 @@ initPrint();
 initMidi();
 initClick();
 initLtc();
+initPhoneNotice();
 
 function frame(): void {
   const now = performance.now();
